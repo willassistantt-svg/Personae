@@ -17,15 +17,13 @@ export function CatalogContainer() {
   const session = useGuard(false);
   const { t, locale } = useI18n();
   const client = useQueryClient();
-  const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
   const [view, setView] = useState<View>("large");
   const catalog = useQuery({
-    queryKey: ["profiles", query, filter, locale],
+    queryKey: ["profiles", filter, locale],
     enabled: Boolean(session.user),
     queryFn: () => {
       const params = new URLSearchParams({ locale });
-      if (query.trim()) params.set("q", query.trim());
       if (filter === "available") params.set("availability", "AVAILABLE");
       if (filter === "elite") params.set("tier", "ELITE");
       return api<Card[]>(`/api/profiles?${params.toString()}`);
@@ -41,7 +39,7 @@ export function CatalogContainer() {
   }
 
   return (
-    <MemberChrome user={session.user} query={query} onQuery={setQuery}>
+    <MemberChrome user={session.user}>
       <main className="mx-auto max-w-[1600px] p-4 md:p-8 lg:p-12">
         <section className="mb-12">
           <div className="flex flex-col justify-between gap-8 lg:flex-row lg:items-end">
@@ -90,14 +88,6 @@ export function CatalogContainer() {
             {t("catalog.sorted")}: <span className="ml-2 text-zincBright">{t("catalog.recent")}</span>
           </p>
         </div>
-        <label className="mb-6 flex items-center gap-3 rounded-full border border-hairline bg-graphite px-4 py-3 md:hidden">
-          <input
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder={t("catalog.search")}
-            className="w-full bg-transparent text-base outline-none placeholder:text-zincMuted"
-          />
-        </label>
         {catalog.isLoading ? <LoadingBlock label={t("common.loading")} /> : null}
         {catalog.isError ? <p className="text-sm text-rose">{t("common.error")}</p> : null}
         {catalog.data && catalog.data.length === 0 ? <p className="text-sm text-zincMuted">{t("catalog.empty")}</p> : null}

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { useState } from "react";
-import { Bell, MagnifyingGlass, SignOut, List, X } from "@phosphor-icons/react";
+import { SignOut, List, X } from "@phosphor-icons/react";
 import { useQueryClient } from "@tanstack/react-query";
 import { LanguageButton, Wordmark } from "@/components/ui";
 import { api } from "@/lib/api";
@@ -10,19 +10,14 @@ import type { SessionUser } from "@/lib/types";
 
 export function MemberChrome({
   user,
-  query,
-  onQuery,
   children,
 }: {
   user: SessionUser;
-  query?: string;
-  onQuery?: (value: string) => void;
   children: React.ReactNode;
 }) {
   const { t } = useI18n();
   const router = useRouter();
   const client = useQueryClient();
-  const [open, setOpen] = useState(false);
   const [menu, setMenu] = useState(false);
 
   async function signOut() {
@@ -51,29 +46,9 @@ export function MemberChrome({
             </nav>
           </div>
           <div className="flex shrink-0 items-center gap-2 sm:gap-3 md:gap-5">
-            {onQuery ? (
-              <label className="hidden items-center gap-3 rounded-full border border-hairline bg-graphite px-4 py-2 md:flex">
-                <MagnifyingGlass className="text-zincMuted" />
-                <input
-                  value={query}
-                  onChange={(event) => onQuery(event.target.value)}
-                  placeholder={t("catalog.search")}
-                  className="w-40 bg-transparent text-base text-zincBright outline-none placeholder:text-zincMuted lg:w-52"
-                />
-              </label>
-            ) : null}
             <span className="hidden md:inline-flex">
               <LanguageButton />
             </span>
-            <button
-              type="button"
-              onClick={() => setOpen((value) => !value)}
-              className="relative hidden h-11 w-11 items-center justify-center rounded-full border border-hairline transition-colors hover:border-champagne sm:flex"
-              aria-label={t("header.notices")}
-            >
-              <Bell />
-              <span className="absolute right-0 top-0 h-2 w-2 rounded-full bg-champagne" />
-            </button>
             <button type="button" onClick={() => setMenu((value) => !value)} className="hidden items-center gap-3 border-l border-hairline pl-5 lg:flex">
               <span className="hidden text-right md:block">
                 <span className="block text-[10px] font-bold uppercase tracking-wider">{user.firstName}</span>
@@ -89,14 +64,6 @@ export function MemberChrome({
           </div>
         </div>
       </header>
-      {open ? (
-        <div className="mx-auto max-w-[1600px] px-4 pt-4 md:px-8">
-          <div className="rounded-3xl border border-hairline bg-charcoal p-5 sm:p-6">
-            <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-champagne">{t("header.notices")}</p>
-            <p className="mt-3 max-w-xl text-sm leading-relaxed text-zincMuted">{t("header.noticeBody")}</p>
-          </div>
-        </div>
-      ) : null}
       {menu ? (
         <div className="fixed inset-0 z-50 bg-ink/70 lg:hidden" onClick={() => setMenu(false)}>
           <div
@@ -104,10 +71,7 @@ export function MemberChrome({
             onClick={(event) => event.stopPropagation()}
           >
             <div className="flex items-start justify-between gap-3 pb-4">
-              <div className="min-w-0">
-                <p className="px-2 pt-2 font-serif text-2xl italic">{user.firstName}</p>
-                <p className="px-2 text-[10px] uppercase tracking-widest text-zincMuted">{user.memberCode}</p>
-              </div>
+              <p className="min-w-0 px-2 pt-2 font-serif text-2xl italic">{user.firstName}</p>
               <button
                 type="button"
                 onClick={() => setMenu(false)}
@@ -125,9 +89,6 @@ export function MemberChrome({
                 {t("header.house")}
               </Link>
             ) : null}
-            <button type="button" onClick={() => { setMenu(false); setOpen(true); }} className="flex items-center gap-2 rounded-2xl px-4 py-4 text-left text-sm text-zincBright sm:hidden">
-              <Bell /> {t("header.notices")}
-            </button>
             <div className="px-4 py-3 md:hidden">
               <LanguageButton />
             </div>
