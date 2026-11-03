@@ -19,7 +19,7 @@ export function useSession() {
   });
   return {
     user: query.data ?? null,
-    loading: query.isLoading,
+    loading: query.isPending || query.isFetching,
     error: query.error,
     refresh: query.refetch,
   };

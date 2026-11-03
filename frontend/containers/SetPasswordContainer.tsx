@@ -40,7 +40,7 @@ export function SetPasswordContainer() {
     setError(null);
     try {
       const user = await api<SessionUser>("/api/auth/set-password", { body: { token, password } });
-      await client.invalidateQueries({ queryKey: ["me"] });
+      client.setQueryData(["me"], user);
       router.push(user.role === "ADMIN" ? "/admin" : "/catalog");
     } catch (caught) {
       setError(t(errorKey(caught instanceof ApiError ? caught.code : undefined)));
