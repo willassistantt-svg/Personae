@@ -60,7 +60,7 @@ export function ProfileFormContainer() {
 
   return (
     <AdminShell user={session.user} title={editing ? persona?.name || t("profiles.edit") : t("profiles.new")}>
-      <h3 className="mb-8 font-serif text-4xl italic">{editing ? persona?.name : t("profiles.new")}</h3>
+      <h3 className="mb-8 break-words font-serif text-3xl italic sm:text-4xl">{editing ? persona?.name : t("profiles.new")}</h3>
       <form onSubmit={onSubmit} className="grid max-w-4xl gap-5">
         {error ? <Notice>{error}</Notice> : null}
         <div className="grid gap-4 sm:grid-cols-2">
@@ -147,7 +147,7 @@ export function ProfileFormContainer() {
           </label>
           <Field label={t("profiles.videoLabel")} name="videoLabel" />
         </div>
-        <GoldButton className="w-fit">{t("profiles.save")}</GoldButton>
+        <GoldButton className="w-full sm:w-fit">{t("profiles.save")}</GoldButton>
       </form>
     </AdminShell>
   );

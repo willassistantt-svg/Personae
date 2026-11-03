@@ -59,9 +59,9 @@ function Kpi({ label, value, note, rose = false }: { label: string; value: numbe
   return (
     <div className={`rounded-2xl border bg-charcoal p-6 ${rose ? "border-rose/30" : "border-hairline"}`}>
       <p className="mb-4 text-[10px] font-bold uppercase tracking-widest text-zincMuted">{label}</p>
-      <div className="flex items-end justify-between">
+      <div className="flex flex-wrap items-end justify-between gap-3">
         <h3 className={`font-serif text-3xl ${rose ? "text-rose" : "text-white"}`}>{value}</h3>
-        <span className={`rounded px-2 py-1 text-xs font-bold ${rose ? "bg-rose/10 text-rose" : "bg-graphite text-zincMuted"}`}>{note}</span>
+        <span className={`max-w-full rounded px-2 py-1 text-xs font-bold ${rose ? "bg-rose/10 text-rose" : "bg-graphite text-zincMuted"}`}>{note}</span>
       </div>
     </div>
   );
@@ -146,7 +146,21 @@ export function ActivityTable({
           </Link>
         ) : null}
       </div>
-      <div className="overflow-x-auto">
+      <ul className="divide-y divide-hairline/40 md:hidden">
+        {rows.map((row) => (
+          <li key={row.id} className="space-y-2 p-4">
+            <div className="flex items-start justify-between gap-3">
+              <p className="text-sm">{row.eventType.replaceAll("_", " ")}</p>
+              <StatusPill tone={row.status === "PENDING" || row.status === "HIDDEN" ? "gold" : row.status === "REMOVED" || row.status === "FAILED" ? "rose" : "green"}>
+                {row.status}
+              </StatusPill>
+            </div>
+            <p className="break-all text-sm text-zincBright">{row.subject}</p>
+            <p className="text-xs text-zincMuted">{formatWhen(row.createdAt, locale)}</p>
+          </li>
+        ))}
+      </ul>
+      <div className="hidden overflow-x-auto md:block">
         <table className="w-full text-left">
           <thead>
             <tr className="border-b border-hairline/40 text-[10px] font-bold uppercase tracking-widest text-zincMuted">

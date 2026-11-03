@@ -25,22 +25,22 @@ export function LinksContainer() {
   if (!session.user || session.user.role !== "ADMIN") return <LoadingBlock label={t("common.loading")} />;
   return (
     <AdminShell user={session.user} title={t("links.title")}>
-      <h3 className="font-serif text-4xl italic">{t("links.title")}</h3>
+      <h3 className="font-serif text-3xl italic sm:text-4xl">{t("links.title")}</h3>
       <p className="mb-8 mt-3 max-w-xl text-sm text-zincMuted">{t("links.lead")}</p>
       {links.isLoading ? <LoadingBlock label={t("common.loading")} /> : null}
       {links.data && links.data.length === 0 ? <p className="text-sm text-zincMuted">{t("links.empty")}</p> : null}
       <div className="space-y-4">
         {links.data?.map((item) => (
-          <article key={item.id} className="rounded-[2rem] border border-hairline bg-charcoal p-6">
+          <article key={item.id} className="rounded-[1.5rem] border border-hairline bg-charcoal p-4 sm:rounded-[2rem] sm:p-6">
             <div className="flex flex-wrap items-start justify-between gap-3">
-              <div>
+              <div className="min-w-0">
                 <p className="font-medium">{item.name}</p>
-                <p className="text-xs text-zincMuted">{item.email} · {t(`links.purpose.${item.purpose}`)} · {formatWhen(item.expiresAt, locale)}</p>
+                <p className="break-all text-xs text-zincMuted">{item.email} · {t(`links.purpose.${item.purpose}`)} · {formatWhen(item.expiresAt, locale)}</p>
               </div>
               <span className="text-[10px] uppercase tracking-widest text-champagne">{item.emailStatus}</span>
             </div>
             <div className="mt-4 flex flex-col gap-3 sm:flex-row">
-              <input readOnly value={item.link} className="w-full rounded-2xl border border-hairline bg-graphite px-4 py-3 text-xs" />
+              <input readOnly value={item.link} className="w-full min-w-0 rounded-2xl border border-hairline bg-graphite px-4 py-3 text-base" />
               <QuietButton
                 type="button"
                 onClick={async () => {

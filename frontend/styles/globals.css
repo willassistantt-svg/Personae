@@ -8,6 +8,42 @@ body {
   color: #f4f4f5;
 }
 
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  overflow-x: clip;
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+}
+
+input,
+select,
+textarea {
+  font-size: 16px;
+}
+
+input[type="file"] {
+  display: block;
+  max-width: 100%;
+  font-size: 14px;
+}
+
+input[type="file"]::file-selector-button {
+  margin-right: 0.75rem;
+  margin-bottom: 0.5rem;
+  border: 0;
+  border-radius: 9999px;
+  background: #d4af37;
+  color: #0a0a0a;
+  padding: 0.75rem 1rem;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
 ::-webkit-scrollbar {
   width: 5px;
   height: 5px;
@@ -25,12 +61,15 @@ body {
 }
 
 .card-hover {
-  transition: all 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+  transition: border-color 0.5s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.5s cubic-bezier(0.2, 0.8, 0.2, 1), transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
-.card-hover:hover {
-  transform: translateY(-8px);
-  border-color: #d4af37;
-  box-shadow: 0 20px 40px -15px rgba(212, 175, 55, 0.15);
+
+@media (hover: hover) and (pointer: fine) {
+  .card-hover:hover {
+    transform: translateY(-8px);
+    border-color: #d4af37;
+    box-shadow: 0 20px 40px -15px rgba(212, 175, 55, 0.15);
+  }
 }
 
 .no-scrollbar::-webkit-scrollbar {

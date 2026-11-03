@@ -18,7 +18,7 @@ export function ActivityContainer() {
   if (!session.user || session.user.role !== "ADMIN") return <LoadingBlock label={t("common.loading")} />;
   return (
     <AdminShell user={session.user} title={t("activity.title")}>
-      <h3 className="font-serif text-4xl italic">{t("activity.title")}</h3>
+      <h3 className="break-words font-serif text-3xl italic sm:text-4xl">{t("activity.title")}</h3>
       <p className="mb-8 mt-3 max-w-xl text-sm text-zincMuted">{t("activity.lead")}</p>
       {activity.data ? (
         <ActivityTable

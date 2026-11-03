@@ -32,13 +32,13 @@ export function SettingsContainer() {
   if (!session.user || session.user.role !== "ADMIN" || !house.data) return <LoadingBlock label={t("common.loading")} />;
   return (
     <AdminShell user={session.user} title={t("settings.title")}>
-      <h3 className="font-serif text-4xl italic">{t("settings.title")}</h3>
+      <h3 className="font-serif text-3xl italic sm:text-4xl">{t("settings.title")}</h3>
       <p className="mb-8 mt-3 max-w-xl text-sm text-zincMuted">{t("settings.lead")}</p>
       <form onSubmit={onSubmit} className="grid max-w-xl gap-5">
         {saved ? <p className="rounded-2xl border border-champagne/40 bg-champagne/10 px-4 py-3 text-sm text-champagne">{t("settings.saved")}</p> : null}
         <Field label={t("settings.phone")} name="sitePhone" required defaultValue={house.data.sitePhone} />
         <Field label={t("settings.email")} name="siteEmail" type="email" required defaultValue={house.data.siteEmail} />
-        <GoldButton className="w-fit">{t("settings.save")}</GoldButton>
+        <GoldButton className="w-full sm:w-fit">{t("settings.save")}</GoldButton>
       </form>
     </AdminShell>
   );

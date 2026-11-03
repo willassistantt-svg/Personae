@@ -41,12 +41,12 @@ export function MemberCreateContainer() {
 
   return (
     <AdminShell user={session.user} title={t("members.directTitle")}>
-      <h3 className="font-serif text-4xl italic">{t("members.directTitle")}</h3>
+      <h3 className="break-words font-serif text-3xl italic sm:text-4xl">{t("members.directTitle")}</h3>
       <p className="mb-8 mt-3 max-w-2xl text-sm text-zincMuted">{t("members.directLead")}</p>
       {issued ? (
-        <div className="max-w-2xl rounded-[2rem] border border-hairline bg-charcoal p-8">
+        <div className="max-w-2xl rounded-[1.5rem] border border-hairline bg-charcoal p-5 sm:rounded-[2rem] sm:p-8">
           <p className="mb-4 text-sm text-zincBright">{t("members.created")}</p>
-          <input readOnly value={issued.link} className="w-full rounded-2xl border border-hairline bg-graphite px-4 py-3 text-xs" />
+          <input readOnly value={issued.link} className="w-full min-w-0 rounded-2xl border border-hairline bg-graphite px-4 py-3 text-base" />
           <QuietButton
             type="button"
             className="mt-4"
@@ -88,7 +88,7 @@ export function MemberCreateContainer() {
             <input name="document" type="file" accept="image/jpeg,image/png,image/webp" className="text-xs text-zincMuted" />
             <span className="mt-2 block text-[11px] text-zincMuted">{t("members.emailOptional")}</span>
           </label>
-          <GoldButton className="w-fit">{t("register.submit")}</GoldButton>
+          <GoldButton className="w-full sm:w-fit">{t("register.submit")}</GoldButton>
         </form>
       )}
     </AdminShell>

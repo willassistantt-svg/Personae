@@ -46,26 +46,28 @@ export function CatalogContainer() {
         <section className="mb-12">
           <div className="flex flex-col justify-between gap-8 lg:flex-row lg:items-end">
             <div className="max-w-2xl">
-              <h2 className="mb-6 font-serif text-5xl italic leading-tight lg:text-7xl">
+              <h2 className="mb-6 font-serif text-4xl italic leading-tight sm:text-5xl lg:text-7xl">
                 {t("catalog.line")}
                 <br />
                 <span className="font-bold not-italic text-champagne">{t("catalog.emphasis")}</span>
               </h2>
               <p className="text-base leading-relaxed text-zincMuted md:text-lg">{t("catalog.lead")}</p>
             </div>
-            <div className="flex items-center gap-2 rounded-2xl border border-hairline bg-charcoal p-2">
+            <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:px-0">
+              <div className="flex min-w-full items-center gap-2 rounded-2xl border border-hairline bg-charcoal p-2 sm:min-w-0">
               {(["all", "available", "elite"] as Filter[]).map((item) => (
                 <button
                   key={item}
                   type="button"
                   onClick={() => setFilter(item)}
-                  className={`rounded-xl px-4 py-2.5 text-[10px] font-bold uppercase tracking-widest md:px-6 ${
+                  className={`min-h-11 flex-1 whitespace-nowrap rounded-xl px-3 py-2.5 text-[10px] font-bold uppercase tracking-widest md:px-6 ${
                     filter === item ? "border border-hairline bg-graphite text-champagne" : "text-zincMuted"
                   }`}
                 >
                   {t(`catalog.${item}`)}
                 </button>
               ))}
+              </div>
             </div>
           </div>
         </section>
@@ -93,7 +95,7 @@ export function CatalogContainer() {
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             placeholder={t("catalog.search")}
-            className="w-full bg-transparent text-xs outline-none placeholder:text-zincMuted"
+            className="w-full bg-transparent text-base outline-none placeholder:text-zincMuted"
           />
         </label>
         {catalog.isLoading ? <LoadingBlock label={t("common.loading")} /> : null}
@@ -112,7 +114,7 @@ export function CatalogContainer() {
 
 function ViewButton({ active, onClick, children, label }: { active: boolean; onClick: () => void; children: React.ReactNode; label: string }) {
   return (
-    <button type="button" aria-label={label} onClick={onClick} className={`rounded p-2 ${active ? "border border-hairline bg-charcoal text-champagne" : "text-zincMuted"}`}>
+    <button type="button" aria-label={label} onClick={onClick} className={`flex h-11 w-11 items-center justify-center rounded-lg ${active ? "border border-hairline bg-charcoal text-champagne" : "text-zincMuted"}`}>
       {children}
     </button>
   );

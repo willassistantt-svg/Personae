@@ -75,7 +75,7 @@ export function RegisterContainer() {
             </label>
             <label className="block">
               <span className="mb-2 ml-1 block text-[10px] font-bold uppercase tracking-widest text-zincMuted">{t("register.document")}</span>
-              <input name="document" type="file" accept="image/jpeg,image/png,image/webp" required className="w-full text-xs text-zincMuted file:mr-4 file:rounded-full file:border-0 file:bg-champagne file:px-4 file:py-2 file:text-[10px] file:font-bold file:uppercase file:tracking-widest file:text-ink" />
+              <input name="document" type="file" accept="image/jpeg,image/png,image/webp" required className="block w-full max-w-full text-sm text-zincMuted file:mb-2 file:mr-4 file:rounded-full file:border-0 file:bg-champagne file:px-4 file:py-3 file:text-[10px] file:font-bold file:uppercase file:tracking-widest file:text-ink" />
               <span className="mt-2 block text-[11px] leading-relaxed text-zincMuted">{t("register.documentHelp")}</span>
             </label>
             <GoldButton type="submit" disabled={pending} className="w-full">

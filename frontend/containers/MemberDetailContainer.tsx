@@ -57,8 +57,8 @@ export function MemberDetailContainer() {
     <AdminShell user={session.user} title={person.memberCode}>
       <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h3 className="font-serif text-4xl italic">{person.firstName} {person.lastName}</h3>
-          <p className="mt-2 text-sm text-zincMuted">{person.email}</p>
+          <h3 className="break-words font-serif text-3xl italic sm:text-4xl">{person.firstName} {person.lastName}</h3>
+          <p className="mt-2 break-all text-sm text-zincMuted">{person.email}</p>
         </div>
         <StatusPill tone={person.status === "ACTIVE" ? "green" : person.status === "DISABLED" || person.status === "REJECTED" ? "rose" : "gold"}>
           {t(`member.${person.status}`)}
@@ -66,7 +66,7 @@ export function MemberDetailContainer() {
       </div>
       {error ? <div className="mb-6"><Notice>{error}</Notice></div> : null}
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
-        <section className="rounded-[2rem] border border-hairline bg-charcoal p-8">
+        <section className="rounded-[1.5rem] border border-hairline bg-charcoal p-5 sm:rounded-[2rem] sm:p-8">
           <dl className="grid grid-cols-1 gap-5 sm:grid-cols-2">
             <Item label={t("register.birth")} value={person.birthDate} />
             <Item label={t("register.phone")} value={person.phone} />
@@ -78,7 +78,7 @@ export function MemberDetailContainer() {
             <Item label="Locale" value={person.locale} />
           </dl>
         </section>
-        <section className="rounded-[2rem] border border-hairline bg-charcoal p-8">
+        <section className="rounded-[1.5rem] border border-hairline bg-charcoal p-5 sm:rounded-[2rem] sm:p-8">
           <h4 className="mb-4 font-serif text-2xl italic">{t("members.document")}</h4>
           {person.hasDocument ? (
             <img src={`/api/admin/members/${person.id}/document`} alt="" className="max-h-[420px] w-full rounded-3xl object-contain" />
@@ -87,12 +87,12 @@ export function MemberDetailContainer() {
           )}
         </section>
       </div>
-      <section className="mt-8 rounded-[2rem] border border-hairline bg-charcoal p-8">
+      <section className="mt-8 rounded-[1.5rem] border border-hairline bg-charcoal p-5 sm:rounded-[2rem] sm:p-8">
         <label className="mb-6 flex items-center gap-3 text-sm text-zincMuted">
           <input type="checkbox" checked={sendEmail} onChange={(event) => setSendEmail(event.target.checked)} className="h-4 w-4 accent-champagne" />
           {t("members.send")}
         </label>
-        <div className="flex flex-wrap gap-3">
+        <div className="grid grid-cols-1 gap-3 sm:flex sm:flex-wrap">
           {person.status === "PENDING_REVIEW" || person.status === "REJECTED" ? (
             <GoldButton type="button" disabled={approve.isPending} onClick={() => run(() => approve.mutateAsync())}>{t("members.approve")}</GoldButton>
           ) : null}
@@ -128,7 +128,7 @@ export function MemberDetailContainer() {
           <div className="mt-8">
             <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-champagne">{t("members.linkReady")}</p>
             <div className="flex flex-col gap-3 sm:flex-row">
-              <input readOnly value={shownLink} className="w-full rounded-2xl border border-hairline bg-graphite px-4 py-3 text-xs text-white" />
+              <input readOnly value={shownLink} className="w-full min-w-0 rounded-2xl border border-hairline bg-graphite px-4 py-3 text-base text-white" />
               <QuietButton
                 type="button"
                 onClick={async () => {
@@ -151,7 +151,7 @@ function Item({ label, value }: { label: string; value: string }) {
   return (
     <div>
       <dt className="text-[10px] font-bold uppercase tracking-widest text-zincMuted">{label}</dt>
-      <dd className="mt-1 text-sm text-white">{value}</dd>
+      <dd className="mt-1 break-words text-sm text-white">{value}</dd>
     </div>
   );
 }
