@@ -51,19 +51,39 @@ Contas de demonstração, para trocar antes de qualquer publicação:
 
 O envio usa a API do Resend. Defina `RESEND_API_KEY` e `RESEND_FROM`. Sem a chave, o cadastro e o aceite continuam válidos e a direção copia o link na ficha do membro.
 
-## Docker
+## Docker Desktop
+
+Na pasta do projeto, com o Docker Desktop aberto:
 
 ```bash
-docker compose up --build
+docker compose up --build -d
 ```
 
-O Nginx publica a porta 80. Postgres, API, frontend e Nginx sobem juntos. As fotos enviadas ficam no volume `uploads`.
+O site fica em [http://localhost](http://localhost). O Nginx recebe a porta 80 e entrega `/` ao Next.js e `/api` à API. Postgres, fotos e filmes ficam nos volumes `pgdata` e `uploads`. Sem arquivo `.env`, o Compose usa os padrões de desenvolvimento (HTTP, cookie sem a flag Secure).
 
-## Produção
+Para parar: `docker compose down`. Os volumes permanecem. `docker compose down -v` apaga o banco e as fotos.
 
-VPS com Docker Compose, domínio `thepersonae.com` atrás do Cloudflare (proxy laranja, SSL completo). O pipeline em `.github/workflows/ci.yml` roda os testes do frontend e do backend. Saúde da API: `GET /api/health` e `GET /actuator/health`. Aponte um monitor externo para `https://thepersonae.com/api/health`.
+## VPS
 
-Antes de publicar, troque `JWT_SECRET`, `ADMIN_PASSWORD` e `COOKIE_SECURE=true`. O arquivo `.env.example` lista as variáveis.
+O mesmo Compose sobe na VPS. Instale o Docker Engine e o plugin Compose, copie o projeto e ajuste o ambiente:
+
+```bash
+cp .env.example .env
+# edite PUBLIC_URL, COOKIE_SECURE, CORS_ORIGINS, JWT_SECRET, ADMIN_PASSWORD e POSTGRES_PASSWORD
+docker compose up --build -d
+```
+
+No `.env` de produção:
+
+- `PUBLIC_URL=https://thepersonae.com`
+- `COOKIE_SECURE=true`
+- `CORS_ORIGINS=https://thepersonae.com,https://www.thepersonae.com`
+- `JWT_SECRET` longo e só seu
+- `ADMIN_PASSWORD` e `POSTGRES_PASSWORD` novos
+
+Aponte o DNS de `thepersonae.com` para a VPS. No Cloudflare, use o proxy e SSL completo, com a origem em HTTP na porta 80, ou termine TLS na frente do Nginx. Saúde da API: `GET /api/health` e `GET /actuator/health`. Um monitor externo pode olhar `https://thepersonae.com/api/health`.
+
+O pipeline em `.github/workflows/ci.yml` roda os testes do frontend e do backend.
 
 ## Testes
 

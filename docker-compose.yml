@@ -1,10 +1,20 @@
+name: personae
+
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
 services:
   postgres:
     image: postgres:16
+    restart: unless-stopped
+    logging: *default-logging
     environment:
       POSTGRES_DB: personae
       POSTGRES_USER: personae
-      POSTGRES_PASSWORD: personae
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-personae}
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -15,41 +25,67 @@ services:
 
   api:
     build: ./backend
+    restart: unless-stopped
+    logging: *default-logging
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/personae
       SPRING_DATASOURCE_USERNAME: personae
-      SPRING_DATASOURCE_PASSWORD: personae
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-personae}
       PUBLIC_URL: ${PUBLIC_URL:-http://localhost}
       JWT_SECRET: ${JWT_SECRET:-personae-dev-secret-change-me-please-32b}
       RESEND_API_KEY: ${RESEND_API_KEY:-}
-      RESEND_FROM: ${RESEND_FROM:-The Personae <noreply@thepersonae.com>}
+      RESEND_FROM: "${RESEND_FROM:-The Personae <noreply@thepersonae.com>}"
       ADMIN_EMAIL: ${ADMIN_EMAIL:-iris.p@example.org}
-      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-PersonaeAdmin#2026}
+      ADMIN_PASSWORD: "${ADMIN_PASSWORD:-PersonaeAdmin#2026}"
+      ADMIN_NAME: ${ADMIN_NAME:-Marina Costa}
       STORAGE_DIR: /data/uploads
+      SEED_ENABLED: ${SEED_ENABLED:-true}
       COOKIE_SECURE: ${COOKIE_SECURE:-false}
-      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost,http://thepersonae.com}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost,http://127.0.0.1,http://thepersonae.com,https://thepersonae.com,https://www.thepersonae.com}
     volumes:
       - uploads:/data/uploads
     depends_on:
       postgres:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8091/api/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 18
+      start_period: 40s
 
   frontend:
-    build: ./frontend
+    build:
+      context: ./frontend
+      args:
+        API_INTERNAL_URL: http://api:8091
+    restart: unless-stopped
+    logging: *default-logging
     environment:
       API_INTERNAL_URL: http://api:8091
     depends_on:
-      - api
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:4317').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
 
   nginx:
     image: nginx:1.27-alpine
+    restart: unless-stopped
+    logging: *default-logging
     ports:
-      - "80:80"
+      - "${HTTP_PORT:-80}:80"
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
     depends_on:
-      - frontend
-      - api
+      frontend:
+        condition: service_healthy
+      api:
+        condition: service_healthy
 
 volumes:
   pgdata:
