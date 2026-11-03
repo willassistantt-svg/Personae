@@ -1,0 +1,11 @@
+node_modules/
+.next/
+frontend/.next/
+frontend/tsconfig.tsbuildinfo
+backend/build/
+backend/.gradle/
+backend/data/
+data/
+.env
+*.log
+.DS_Store

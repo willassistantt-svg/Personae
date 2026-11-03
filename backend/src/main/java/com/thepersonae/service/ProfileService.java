@@ -1,0 +1,137 @@
+package com.thepersonae.service;
+
+import com.thepersonae.domain.Availability;
+import com.thepersonae.domain.CompanionProfile;
+import com.thepersonae.domain.Ethnicity;
+import com.thepersonae.domain.Favorite;
+import com.thepersonae.domain.MediaKind;
+import com.thepersonae.domain.ProfileMedia;
+import com.thepersonae.domain.SiteSettings;
+import com.thepersonae.domain.Tier;
+import com.thepersonae.domain.UserAccount;
+import com.thepersonae.repository.CompanionProfileRepository;
+import com.thepersonae.repository.FavoriteRepository;
+import com.thepersonae.repository.ProfileMediaRepository;
+import com.thepersonae.repository.SiteSettingsRepository;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.Instant;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.UUID;
+
+@Service
+public class ProfileService {
+
+    private final CompanionProfileRepository profiles;
+    private final ProfileMediaRepository media;
+    private final FavoriteRepository favorites;
+    private final SiteSettingsRepository settings;
+
+    public ProfileService(
+            CompanionProfileRepository profiles,
+            ProfileMediaRepository media,
+            FavoriteRepository favorites,
+            SiteSettingsRepository settings
+    ) {
+        this.profiles = profiles;
+        this.media = media;
+        this.favorites = favorites;
+        this.settings = settings;
+    }
+
+    @Transactional(readOnly = true)
+    public List<CompanionProfile> catalog(String query, Availability availability, Tier tier) {
+        return profiles.search(query == null ? "" : query.trim(), availability, tier, false);
+    }
+
+    @Transactional(readOnly = true)
+    public List<CompanionProfile> adminCatalog(String query, Availability availability, Tier tier) {
+        return profiles.search(query == null ? "" : query.trim(), availability, tier, true);
+    }
+
+    @Transactional(readOnly = true)
+    public CompanionProfile visible(UUID id) {
+        CompanionProfile profile = profiles.findById(id)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "NOT_FOUND", "Profile not found"));
+        if (!profile.isVisible()) {
+            throw new ApiException(HttpStatus.NOT_FOUND, "NOT_FOUND", "Profile not found");
+        }
+        return profile;
+    }
+
+    @Transactional(readOnly = true)
+    public CompanionProfile any(UUID id) {
+        return profiles.findById(id)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "NOT_FOUND", "Profile not found"));
+    }
+
+    @Transactional(readOnly = true)
+    public List<ProfileMedia> mediaFor(UUID profileId) {
+        return media.findByProfileIdOrderBySortOrderAsc(profileId);
+    }
+
+    @Transactional(readOnly = true)
+    public List<ProfileMedia> mediaForAll(List<UUID> ids) {
+        if (ids.isEmpty()) {
+            return List.of();
+        }
+        return media.findByProfileIdInOrderBySortOrderAsc(ids);
+    }
+
+    @Transactional(readOnly = true)
+    public Set<UUID> favoriteIds(UserAccount user) {
+        return new HashSet<>(favorites.findByUserId(user.getId()).stream().map(Favorite::getProfileId).toList());
+    }
+
+    @Transactional
+    public boolean toggleFavorite(UserAccount user, UUID profileId) {
+        visible(profileId);
+        if (favorites.existsByUserIdAndProfileId(user.getId(), profileId)) {
+            favorites.deleteByUserIdAndProfileId(user.getId(), profileId);
+            return false;
+        }
+        Favorite favorite = new Favorite();
+        favorite.setUserId(user.getId());
+        favorite.setProfileId(profileId);
+        favorite.setCreatedAt(Instant.now());
+        favorites.save(favorite);
+        return true;
+    }
+
+    @Transactional(readOnly = true)
+    public SiteSettings house() {
+        return settings.findById(1).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "NOT_FOUND", "House settings are missing"));
+    }
+
+    public void validateProfile(CompanionProfile profile) {
+        if (profile.getName() == null || profile.getName().isBlank() || profile.getCity() == null || profile.getCity().isBlank()) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "VALIDATION", "Name and city are required");
+        }
+        if (profile.getAge() < 18) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "UNDERAGE", "A persona must be 18 or older");
+        }
+        if (profile.getHeightCm() < 120 || profile.getHeightCm() > 230 || profile.getWeightKg() < 35 || profile.getWeightKg() > 200) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "VALIDATION", "Check height and weight");
+        }
+        if (profile.getPriceCents() < 0) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "VALIDATION", "The fee cannot be negative");
+        }
+        if (profile.getDescriptionPt() == null || profile.getDescriptionPt().isBlank() || profile.getDescriptionEn() == null || profile.getDescriptionEn().isBlank()) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "VALIDATION", "Write the description in Portuguese and English");
+        }
+        if (profile.getEmail() == null || !profile.getEmail().contains("@") || profile.getPhone() == null || profile.getPhone().isBlank()) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "VALIDATION", "Email and phone are required");
+        }
+        if (profile.getEthnicity() == null || profile.getAvailability() == null || profile.getTier() == null) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "VALIDATION", "Ethnicity, availability and tier are required");
+        }
+    }
+
+    public long photoCount(List<ProfileMedia> items) {
+        return items.stream().filter(item -> item.getKind() == MediaKind.PHOTO).count();
+    }
+}

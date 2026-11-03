@@ -1,0 +1,52 @@
+server:
+  port: ${PORT:8091}
+
+spring:
+  application:
+    name: personae-api
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://127.0.0.1:5432/personae}
+    username: ${SPRING_DATASOURCE_USERNAME:personae}
+    password: ${SPRING_DATASOURCE_PASSWORD:personae}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate.jdbc.time_zone: UTC
+  flyway:
+    enabled: true
+  servlet:
+    multipart:
+      max-file-size: 25MB
+      max-request-size: 120MB
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true
+
+personae:
+  public-url: ${PUBLIC_URL:http://127.0.0.1:4317}
+  seed-enabled: ${SEED_ENABLED:true}
+  cors-origins: ${CORS_ORIGINS:http://127.0.0.1:4317,http://localhost:4317}
+  jwt:
+    secret: ${JWT_SECRET:personae-dev-secret-change-me-please-32b}
+    ttl-hours: 12
+  storage:
+    dir: ${STORAGE_DIR:./data/uploads}
+  resend:
+    api-key: ${RESEND_API_KEY:}
+    from: ${RESEND_FROM:The Personae <noreply@thepersonae.com>}
+  admin:
+    email: ${ADMIN_EMAIL:iris.p@example.org}
+    password: ${ADMIN_PASSWORD:PersonaeAdmin#2026}
+    name: ${ADMIN_NAME:Marina Costa}
+  cookie:
+    secure: ${COOKIE_SECURE:false}
+    remember-days: 30

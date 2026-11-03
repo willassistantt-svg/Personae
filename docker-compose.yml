@@ -1,0 +1,56 @@
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: personae
+      POSTGRES_USER: personae
+      POSTGRES_PASSWORD: personae
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U personae -d personae"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  api:
+    build: ./backend
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/personae
+      SPRING_DATASOURCE_USERNAME: personae
+      SPRING_DATASOURCE_PASSWORD: personae
+      PUBLIC_URL: ${PUBLIC_URL:-http://localhost}
+      JWT_SECRET: ${JWT_SECRET:-personae-dev-secret-change-me-please-32b}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      RESEND_FROM: ${RESEND_FROM:-The Personae <noreply@thepersonae.com>}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-iris.p@example.org}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-PersonaeAdmin#2026}
+      STORAGE_DIR: /data/uploads
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost,http://thepersonae.com}
+    volumes:
+      - uploads:/data/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  frontend:
+    build: ./frontend
+    environment:
+      API_INTERNAL_URL: http://api:8091
+    depends_on:
+      - api
+
+  nginx:
+    image: nginx:1.27-alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - frontend
+      - api
+
+volumes:
+  pgdata:
+  uploads:
