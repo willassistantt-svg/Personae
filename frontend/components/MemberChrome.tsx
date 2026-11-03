@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { useState } from "react";
-import { Bell, MagnifyingGlass, SignOut, List } from "@phosphor-icons/react";
+import { Bell, MagnifyingGlass, SignOut, List, X } from "@phosphor-icons/react";
 import { useQueryClient } from "@tanstack/react-query";
 import { LanguageButton, Wordmark } from "@/components/ui";
 import { api } from "@/lib/api";
@@ -103,8 +103,20 @@ export function MemberChrome({
             className="ml-auto flex h-full w-[min(100%,20rem)] flex-col border-l border-hairline bg-charcoal px-4 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-[max(1rem,env(safe-area-inset-top))]"
             onClick={(event) => event.stopPropagation()}
           >
-            <p className="px-2 pt-2 font-serif text-2xl italic">{user.firstName}</p>
-            <p className="px-2 pb-4 text-[10px] uppercase tracking-widest text-zincMuted">{user.memberCode}</p>
+            <div className="flex items-start justify-between gap-3 pb-4">
+              <div className="min-w-0">
+                <p className="px-2 pt-2 font-serif text-2xl italic">{user.firstName}</p>
+                <p className="px-2 text-[10px] uppercase tracking-widest text-zincMuted">{user.memberCode}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setMenu(false)}
+                className="mt-1 flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-hairline text-zincBright"
+                aria-label={t("header.close")}
+              >
+                <X size={18} />
+              </button>
+            </div>
             <Link href="/catalog" onClick={() => setMenu(false)} className="rounded-2xl px-4 py-4 text-sm text-zincBright">
               {t("header.directory")}
             </Link>
