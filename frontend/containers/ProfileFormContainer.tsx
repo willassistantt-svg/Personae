@@ -33,6 +33,13 @@ export function ProfileFormContainer() {
     form.delete("fee");
     form.set("priceCents", String(Math.round(fee * 100)));
     form.set("visible", form.get("visible") === "on" ? "true" : "false");
+    const photos = form.getAll("photos").filter((value) => value instanceof File && value.size > 0);
+    form.delete("photos");
+    photos.forEach((file) => form.append("photos", file));
+    const video = form.get("video");
+    if (!(video instanceof File) || video.size === 0) {
+      form.delete("video");
+    }
     removeIds.forEach((mediaId) => form.append("removeMediaIds", mediaId));
     setError(null);
     try {

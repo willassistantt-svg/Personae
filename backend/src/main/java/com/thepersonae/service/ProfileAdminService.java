@@ -72,7 +72,7 @@ public class ProfileAdminService {
             String videoLabel,
             List<UUID> removeMediaIds
     ) {
-        CompanionProfile profile = profileService.any(id);
+        CompanionProfile profile = managed(id);
         apply(profile, draft);
         profileService.validateProfile(profile);
         if (removeMediaIds != null) {
@@ -106,7 +106,7 @@ public class ProfileAdminService {
 
     @Transactional
     public CompanionProfile visibility(UUID id, boolean visible) {
-        CompanionProfile profile = profileService.any(id);
+        CompanionProfile profile = managed(id);
         profile.setVisible(visible);
         audit.record(visible ? "PROFILE_SHOWN" : "PROFILE_HIDDEN", profile.getName(), visible ? "VISIBLE" : "HIDDEN");
         return profile;
@@ -114,11 +114,19 @@ public class ProfileAdminService {
 
     @Transactional
     public void delete(UUID id) {
-        CompanionProfile profile = profileService.any(id);
-        media.findByProfileIdOrderBySortOrderAsc(id).forEach(item -> storage.delete(item.getStoragePath()));
+        CompanionProfile profile = managed(id);
+        List<ProfileMedia> items = media.findByProfileIdOrderBySortOrderAsc(id);
+        items.forEach(item -> storage.delete(item.getStoragePath()));
+        media.deleteAll(items);
+        media.flush();
         favorites.deleteByProfileId(id);
         profiles.delete(profile);
         audit.record("PROFILE_REMOVED", profile.getName(), "REMOVED");
+    }
+
+    private CompanionProfile managed(UUID id) {
+        return profiles.findById(id)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "NOT_FOUND", "Profile not found"));
     }
 
     private void saveMedia(CompanionProfile profile, MultipartFile file, MediaKind kind, String label, String duration, int order) {

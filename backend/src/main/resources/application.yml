@@ -1,5 +1,8 @@
 server:
   port: ${PORT:8091}
+  tomcat:
+    max-part-count: 200
+    max-http-form-post-size: 120MB
 
 spring:
   application:
