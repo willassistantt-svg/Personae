@@ -111,23 +111,23 @@ public class ProfileService {
         if (profile.getName() == null || profile.getName().isBlank() || profile.getCity() == null || profile.getCity().isBlank()) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "VALIDATION", "Name and city are required");
         }
-        if (profile.getAge() < 18) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "UNDERAGE", "A persona must be 18 or older");
+        if (profile.getAge() < 18 || profile.getAge() > 120) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "PERSONA_AGE", "A persona must be between 18 and 120");
         }
-        if (profile.getHeightCm() < 120 || profile.getHeightCm() > 230 || profile.getWeightKg() < 35 || profile.getWeightKg() > 200) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "VALIDATION", "Check height and weight");
+        boolean heightSet = profile.getHeightCm() != 0;
+        boolean weightSet = profile.getWeightKg() != 0;
+        if ((heightSet && (profile.getHeightCm() < 120 || profile.getHeightCm() > 230))
+                || (weightSet && (profile.getWeightKg() < 35 || profile.getWeightKg() > 200))) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "MEASURE", "Check height and weight");
         }
         if (profile.getPriceCents() < 0) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "VALIDATION", "The fee cannot be negative");
         }
-        if (profile.getDescriptionPt() == null || profile.getDescriptionPt().isBlank() || profile.getDescriptionEn() == null || profile.getDescriptionEn().isBlank()) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "VALIDATION", "Write the description in Portuguese and English");
+        if (profile.getEmail() != null && !profile.getEmail().isBlank() && !profile.getEmail().contains("@")) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "EMAIL_INVALID", "Use a valid email");
         }
-        if (profile.getEmail() == null || !profile.getEmail().contains("@") || profile.getPhone() == null || profile.getPhone().isBlank()) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "VALIDATION", "Email and phone are required");
-        }
-        if (profile.getEthnicity() == null || profile.getAvailability() == null || profile.getTier() == null) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "VALIDATION", "Ethnicity, availability and tier are required");
+        if (profile.getCurrency() == null || !java.util.Set.of("BRL", "EUR", "USD", "GBP").contains(profile.getCurrency())) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "VALIDATION", "Choose a currency");
         }
     }
 

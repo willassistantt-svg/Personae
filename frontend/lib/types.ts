@@ -23,8 +23,9 @@ export type Card = {
   age: number;
   city: string;
   excerpt: string;
-  ethnicity: string;
+  ethnicity: string | null;
   heightCm: number;
+  weightKg: number;
   tier: string;
   availability: string;
   visible: boolean;

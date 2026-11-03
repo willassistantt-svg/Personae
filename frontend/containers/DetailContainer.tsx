@@ -46,6 +46,18 @@ export function DetailContainer() {
   }
   const persona = detail.data;
   const hero = persona.photos[0]?.url;
+  const paragraphs = persona.description.split(/\n+/).map((paragraph) => paragraph.trim()).filter(Boolean);
+  const facts = [
+    { label: t("detail.age"), value: ageLabel(persona.age, locale) },
+    { label: t("register.city"), value: persona.city },
+    persona.ethnicity ? { label: t("catalog.ethnicity"), value: t(`ethnicity.${persona.ethnicity}`) } : null,
+    persona.heightCm > 0 ? { label: t("catalog.height"), value: heightLabel(persona.heightCm) } : null,
+    persona.weightKg > 0 ? { label: t("detail.weight"), value: `${persona.weightKg} kg` } : null,
+    persona.priceCents > 0 ? { label: t("detail.fee"), value: formatPrice(persona.priceCents, persona.currency, locale) } : null,
+    persona.sitePhone ? { label: t("detail.sitePhone"), value: persona.sitePhone } : null,
+    persona.phone ? { label: t("detail.profilePhone"), value: persona.phone } : null,
+    persona.email ? { label: t("detail.email"), value: persona.email } : null,
+  ].filter((fact): fact is { label: string; value: string } => fact !== null);
 
   return (
     <div className="min-h-screen bg-ink pb-24 sm:pb-0">
@@ -77,15 +89,12 @@ export function DetailContainer() {
           <div className="absolute bottom-12 left-0 w-full px-5 md:bottom-20 md:px-12 lg:px-24">
             <div className="max-w-4xl">
               <div className="mb-6 flex flex-wrap items-center gap-3">
-                <span className="rounded-full border border-champagne/40 bg-champagne/20 px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-champagne backdrop-blur-md">
-                  {t(`tier.${persona.tier}`)}
-                </span>
                 <span className="rounded-full border border-white/10 bg-white/10 px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-white backdrop-blur-md">
                   {persona.city}
                 </span>
               </div>
               <h2 className="mb-6 break-words font-serif text-5xl italic tracking-tight text-white sm:text-6xl md:text-8xl">{persona.name}.</h2>
-              <p className="mb-8 line-clamp-4 max-w-2xl text-base font-medium leading-relaxed text-zincBright/80 sm:line-clamp-none md:text-xl">{persona.description}</p>
+              {persona.description.trim() ? <p className="mb-8 line-clamp-4 max-w-2xl text-base font-medium leading-relaxed text-zincBright/80 sm:line-clamp-none md:text-xl">{persona.description}</p> : null}
               <a href="#gallery" className="flex items-center gap-4 text-xs font-bold uppercase tracking-[0.3em] text-champagne">
                 {t("detail.gallery")} <ArrowDown className="animate-bounce" />
               </a>
@@ -115,33 +124,26 @@ export function DetailContainer() {
             ))}
           </div>
         </section>
-        <section className="mx-auto grid max-w-[1600px] grid-cols-1 items-start gap-16 px-5 py-20 md:px-12 lg:grid-cols-2 lg:gap-24 lg:px-24">
-          <div>
-            <h3 className="mb-8 font-serif text-4xl italic sm:mb-10 sm:text-5xl">
-              {t("detail.persona")} <span className="font-bold not-italic text-champagne">{t("detail.personaEm")}</span>
-            </h3>
-            <div className="space-y-6 text-base leading-relaxed text-zincMuted md:text-lg">
-              {persona.description.split(/\n+/).map((paragraph) => (
-                <p key={paragraph}>{paragraph}</p>
-              ))}
+        <section className={`mx-auto grid max-w-[1600px] grid-cols-1 items-start gap-16 px-5 py-20 md:px-12 lg:px-24 ${paragraphs.length ? "lg:grid-cols-2 lg:gap-24" : ""}`}>
+          {paragraphs.length ? (
+            <div>
+              <h3 className="mb-8 font-serif text-4xl italic sm:mb-10 sm:text-5xl">
+                {t("detail.persona")} <span className="font-bold not-italic text-champagne">{t("detail.personaEm")}</span>
+              </h3>
+              <div className="space-y-6 text-base leading-relaxed text-zincMuted md:text-lg">
+                {paragraphs.map((paragraph) => (
+                  <p key={paragraph}>{paragraph}</p>
+                ))}
+              </div>
             </div>
-          </div>
+          ) : null}
           <div className="relative overflow-hidden rounded-[1.75rem] border border-hairline bg-charcoal p-5 sm:rounded-[3rem] sm:p-8 md:p-14">
             <div className="absolute right-0 top-0 h-64 w-64 -translate-y-1/2 translate-x-1/2 rounded-full bg-champagne/5 blur-3xl" />
             <h3 className="mb-10 border-b border-hairline/40 pb-6 font-serif text-3xl italic">{t("detail.refined")}</h3>
             <div className="grid grid-cols-1 gap-8 sm:grid-cols-2">
-              <Fact label={t("detail.age")} value={ageLabel(persona.age, locale)} />
-              <Fact label={t("catalog.ethnicity")} value={t(`ethnicity.${persona.ethnicity}`)} />
-              <Fact label={t("catalog.height")} value={heightLabel(persona.heightCm)} />
-              <Fact label={t("detail.weight")} value={`${persona.weightKg} kg`} />
-              <Fact label={t("detail.hair")} value={persona.hair || "—"} />
-              <Fact label={t("detail.eyes")} value={persona.eyes || "—"} />
-              <Fact label={t("detail.languages")} value={persona.languages || "—"} />
-              <Fact label={t("detail.availability")} value={t(`status.${persona.availability}`)} />
-              <Fact label={t("detail.fee")} value={formatPrice(persona.priceCents, persona.currency, locale)} />
-              <Fact label={t("detail.sitePhone")} value={persona.sitePhone} />
-              <Fact label={t("detail.profilePhone")} value={persona.phone} />
-              <Fact label={t("detail.email")} value={persona.email} />
+              {facts.map((fact) => (
+                <Fact key={fact.label} label={fact.label} value={fact.value} />
+              ))}
             </div>
           </div>
         </section>
@@ -162,10 +164,12 @@ export function DetailContainer() {
                     <Play weight="fill" className="text-3xl text-white" />
                   </span>
                 </span>
-                <span className="absolute bottom-6 left-6 right-6 flex items-end justify-between gap-3">
-                  <span className="min-w-0 truncate rounded-full bg-black/40 px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-white backdrop-blur-md">{item.label || "Film"}</span>
-                  <span className="font-mono text-[10px] text-white/80">{item.durationLabel}</span>
-                </span>
+                {item.label || item.durationLabel ? (
+                  <span className="absolute bottom-6 left-6 right-6 flex items-end justify-between gap-3">
+                    {item.label ? <span className="min-w-0 truncate rounded-full bg-black/40 px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-white backdrop-blur-md">{item.label}</span> : <span />}
+                    {item.durationLabel ? <span className="font-mono text-[10px] text-white/80">{item.durationLabel}</span> : null}
+                  </span>
+                ) : null}
               </button>
             ))}
           </div>
@@ -184,10 +188,10 @@ export function DetailContainer() {
             <h3 className="mb-3 text-center font-serif text-3xl italic text-white">{t("detail.contactTitle")}</h3>
             <p className="mb-8 text-center text-sm leading-relaxed text-zincMuted">{t("detail.contactLead")}</p>
             <div className="space-y-4 text-sm">
-              <p><span className="block text-[10px] uppercase tracking-widest text-zincMuted">{t("detail.sitePhone")}</span><a className="inline-flex min-h-11 items-center break-all text-base text-champagne" href={`tel:${persona.sitePhone}`}>{persona.sitePhone}</a></p>
-              <p><span className="block text-[10px] uppercase tracking-widest text-zincMuted">{t("detail.profilePhone")}</span><a className="inline-flex min-h-11 items-center break-all text-base text-champagne" href={`tel:${persona.phone}`}>{persona.phone}</a></p>
-              <p><span className="block text-[10px] uppercase tracking-widest text-zincMuted">{t("detail.email")}</span><a className="inline-flex min-h-11 items-center break-all text-base text-champagne" href={`mailto:${persona.email}`}>{persona.email}</a></p>
-              <p><span className="block text-[10px] uppercase tracking-widest text-zincMuted">{t("detail.fee")}</span>{formatPrice(persona.priceCents, persona.currency, locale)}</p>
+              {persona.sitePhone ? <p><span className="block text-[10px] uppercase tracking-widest text-zincMuted">{t("detail.sitePhone")}</span><a className="inline-flex min-h-11 items-center break-all text-base text-champagne" href={`tel:${persona.sitePhone}`}>{persona.sitePhone}</a></p> : null}
+              {persona.phone ? <p><span className="block text-[10px] uppercase tracking-widest text-zincMuted">{t("detail.profilePhone")}</span><a className="inline-flex min-h-11 items-center break-all text-base text-champagne" href={`tel:${persona.phone}`}>{persona.phone}</a></p> : null}
+              {persona.email ? <p><span className="block text-[10px] uppercase tracking-widest text-zincMuted">{t("detail.email")}</span><a className="inline-flex min-h-11 items-center break-all text-base text-champagne" href={`mailto:${persona.email}`}>{persona.email}</a></p> : null}
+              {persona.priceCents > 0 ? <p><span className="block text-[10px] uppercase tracking-widest text-zincMuted">{t("detail.fee")}</span>{formatPrice(persona.priceCents, persona.currency, locale)}</p> : null}
             </div>
             <button type="button" onClick={() => setContact(false)} className="mt-8 w-full py-4 text-xs font-bold uppercase tracking-widest text-zincMuted">
               {t("detail.close")}

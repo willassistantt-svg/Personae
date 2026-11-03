@@ -32,7 +32,6 @@ export function ProfileCard({
             {ageLabel(card.age, locale)} · {card.city}
           </p>
         </div>
-        <span className="hidden text-xs font-bold text-champagne sm:inline">{t(`tier.${card.tier}`)}</span>
       </article>
     );
   }
@@ -46,9 +45,6 @@ export function ProfileCard({
           <span className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-90" />
         </Link>
         <div className="pointer-events-none absolute left-4 top-4 flex max-w-[70%] flex-col gap-2 sm:left-5 md:left-8 md:top-8">
-          <span className={`w-fit rounded-full border px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest backdrop-blur-md sm:px-4 sm:py-2 ${card.availability === "AVAILABLE" ? "border-emerald/30 bg-emerald/10 text-emerald" : "border-champagne/30 bg-champagne/10 text-champagne"}`}>
-            {t(`status.${card.availability}`)}
-          </span>
           <span className="w-fit max-w-full truncate rounded-full border border-white/10 bg-black/40 px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-white backdrop-blur-md sm:px-4 sm:py-2">
             {card.city}
           </span>
@@ -75,7 +71,7 @@ export function ProfileCard({
         <div className="pointer-events-none absolute bottom-4 left-4 right-4 sm:bottom-6 sm:left-5 sm:right-24 md:bottom-10 md:left-8">
           <h3 className={`font-serif italic tracking-tight text-white ${tall ? "text-4xl md:text-5xl" : "text-3xl"}`}>{card.name}</h3>
           <p className="mt-2 text-xs uppercase tracking-[0.2em] text-champagne">{ageLabel(card.age, locale)}</p>
-          {tall ? <p className="mt-3 line-clamp-2 max-w-lg text-sm text-zincMuted">{card.excerpt}</p> : null}
+          {tall && card.excerpt ? <p className="mt-3 line-clamp-2 max-w-lg text-sm text-zincMuted">{card.excerpt}</p> : null}
         </div>
       </div>
       <div className="grid grid-cols-3 gap-2 px-4 pt-4 sm:hidden">
@@ -87,9 +83,9 @@ export function ProfileCard({
       </div>
       <div className="flex flex-col gap-4 border-t border-hairline bg-graphite/40 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5 md:p-8">
         <div className="grid grid-cols-3 gap-3 sm:flex sm:gap-8">
-          <Meta label={t("catalog.ethnicity")} value={t(`ethnicity.${card.ethnicity}`)} />
-          <Meta label={t("catalog.height")} value={`${card.heightCm} cm`} />
-          <Meta label={t("catalog.status")} value={t(`tier.${card.tier}`)} gold />
+          {card.ethnicity ? <Meta label={t("catalog.ethnicity")} value={t(`ethnicity.${card.ethnicity}`)} /> : null}
+          {card.heightCm > 0 ? <Meta label={t("catalog.height")} value={`${card.heightCm} cm`} /> : null}
+          {card.weightKg > 0 ? <Meta label={t("detail.weight")} value={`${card.weightKg} kg`} /> : null}
         </div>
         <Link href={`/catalog/${card.id}`} className="gold-gradient min-h-12 rounded-2xl px-6 py-3 text-center text-xs font-bold uppercase tracking-widest text-ink">
           {t("catalog.dossier")}

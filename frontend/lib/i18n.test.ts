@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { dictionaries, translate } from "@/lib/i18n";
 import { ageLabel, formatPrice, heightLabel } from "@/lib/format";
-import { isAdult, passwordIssue } from "@/lib/validation";
+import { isAdult, passwordIssue, personaIssue } from "@/lib/validation";
 
 describe("dictionaries", () => {
   it("covers the same keys in Portuguese and English", () => {
@@ -34,6 +34,15 @@ describe("password and money", () => {
     expect(passwordIssue("curta")).toBe("short");
     expect(passwordIssue("somenteLetras")).toBe("weak");
     expect(passwordIssue("Casa2026")).toBeNull();
+  });
+
+  it("requires photos, name, age and city on a persona", () => {
+    expect(personaIssue({ name: "", city: "São Paulo", age: "24", email: "", heightCm: "", weightKg: "", fee: "", photoCount: 1 })).toBe("name");
+    expect(personaIssue({ name: "Beatriz", city: "  ", age: "24", email: "", heightCm: "", weightKg: "", fee: "", photoCount: 1 })).toBe("city");
+    expect(personaIssue({ name: "Beatriz", city: "São Paulo", age: "17", email: "", heightCm: "", weightKg: "", fee: "", photoCount: 1 })).toBe("age");
+    expect(personaIssue({ name: "Beatriz", city: "São Paulo", age: "24", email: "", heightCm: "", weightKg: "", fee: "", photoCount: 0 })).toBe("photo");
+    expect(personaIssue({ name: "Beatriz", city: "São Paulo", age: "24", email: "casa", heightCm: "10", weightKg: "4", fee: "-1", photoCount: 2 })).toBe("email");
+    expect(personaIssue({ name: "Beatriz", city: "São Paulo", age: "24", email: "", heightCm: "", weightKg: "", fee: "", photoCount: 3 })).toBeNull();
   });
 
   it("formats a fee in reais", () => {

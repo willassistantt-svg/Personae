@@ -10,24 +10,17 @@ import { api } from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
 import type { Card } from "@/lib/types";
 
-type Filter = "all" | "available" | "elite";
 type View = "large" | "grid" | "list";
 
 export function CatalogContainer() {
   const session = useGuard(false);
   const { t, locale } = useI18n();
   const client = useQueryClient();
-  const [filter, setFilter] = useState<Filter>("all");
   const [view, setView] = useState<View>("large");
   const catalog = useQuery({
-    queryKey: ["profiles", filter, locale],
+    queryKey: ["profiles", locale],
     enabled: Boolean(session.user),
-    queryFn: () => {
-      const params = new URLSearchParams({ locale });
-      if (filter === "available") params.set("availability", "AVAILABLE");
-      if (filter === "elite") params.set("tier", "ELITE");
-      return api<Card[]>(`/api/profiles?${params.toString()}`);
-    },
+    queryFn: () => api<Card[]>(`/api/profiles?locale=${locale}`),
   });
   const favorite = useMutation({
     mutationFn: (id: string) => api(`/api/profiles/${id}/favorite`, { method: "POST" }),
@@ -50,22 +43,6 @@ export function CatalogContainer() {
                 <span className="font-bold not-italic text-champagne">{t("catalog.emphasis")}</span>
               </h2>
               <p className="text-base leading-relaxed text-zincMuted md:text-lg">{t("catalog.lead")}</p>
-            </div>
-            <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:px-0">
-              <div className="flex min-w-full items-center gap-2 rounded-2xl border border-hairline bg-charcoal p-2 sm:min-w-0">
-              {(["all", "available", "elite"] as Filter[]).map((item) => (
-                <button
-                  key={item}
-                  type="button"
-                  onClick={() => setFilter(item)}
-                  className={`min-h-11 flex-1 whitespace-nowrap rounded-xl px-3 py-2.5 text-[10px] font-bold uppercase tracking-widest md:px-6 ${
-                    filter === item ? "border border-hairline bg-graphite text-champagne" : "text-zincMuted"
-                  }`}
-                >
-                  {t(`catalog.${item}`)}
-                </button>
-              ))}
-              </div>
             </div>
           </div>
         </section>

@@ -45,7 +45,7 @@ public class ProfileAdminService {
 
     @Transactional
     public CompanionProfile create(ProfileDraft draft, List<MultipartFile> photos, MultipartFile video, String videoLabel) {
-        CompanionProfile profile = apply(new CompanionProfile(), draft);
+        CompanionProfile profile = apply(new CompanionProfile(), draft, true);
         profileService.validateProfile(profile);
         List<MultipartFile> incoming = photos == null ? List.of() : photos.stream().filter(file -> file != null && !file.isEmpty()).toList();
         if (incoming.isEmpty()) {
@@ -57,7 +57,7 @@ public class ProfileAdminService {
             saveMedia(profile, photo, MediaKind.PHOTO, null, null, order++);
         }
         if (video != null && !video.isEmpty()) {
-            saveMedia(profile, video, MediaKind.VIDEO, blank(videoLabel) ? "Film" : videoLabel.trim(), null, order);
+            saveMedia(profile, video, MediaKind.VIDEO, blank(videoLabel) ? null : videoLabel.trim(), null, order);
         }
         audit.record("PROFILE_CREATED", profile.getName(), profile.isVisible() ? "VISIBLE" : "HIDDEN");
         return profile;
@@ -73,7 +73,7 @@ public class ProfileAdminService {
             List<UUID> removeMediaIds
     ) {
         CompanionProfile profile = managed(id);
-        apply(profile, draft);
+        apply(profile, draft, false);
         profileService.validateProfile(profile);
         if (removeMediaIds != null) {
             for (UUID mediaId : removeMediaIds) {
@@ -94,7 +94,7 @@ public class ProfileAdminService {
             }
         }
         if (video != null && !video.isEmpty()) {
-            saveMedia(profile, video, MediaKind.VIDEO, blank(videoLabel) ? "Film" : videoLabel.trim(), null, order);
+            saveMedia(profile, video, MediaKind.VIDEO, blank(videoLabel) ? null : videoLabel.trim(), null, order);
         }
         long photosLeft = profileService.photoCount(media.findByProfileIdOrderBySortOrderAsc(id));
         if (photosLeft < 1) {
@@ -140,25 +140,26 @@ public class ProfileAdminService {
         media.save(item);
     }
 
-    private CompanionProfile apply(CompanionProfile profile, ProfileDraft draft) {
+    private CompanionProfile apply(CompanionProfile profile, ProfileDraft draft, boolean creating) {
+        String description = blank(draft.description()) ? "" : draft.description().trim();
         profile.setName(draft.name().trim());
         profile.setAge(draft.age());
         profile.setCity(draft.city().trim());
-        profile.setDescriptionPt(draft.descriptionPt().trim());
-        profile.setDescriptionEn(draft.descriptionEn().trim());
-        profile.setEmail(draft.email().trim().toLowerCase());
-        profile.setPhone(draft.phone().trim());
+        profile.setDescriptionPt(description);
+        profile.setDescriptionEn(description);
+        profile.setEmail(blank(draft.email()) ? "" : draft.email().trim().toLowerCase());
+        profile.setSitePhone(blank(draft.sitePhone()) ? "" : draft.sitePhone().trim());
+        profile.setPhone(blank(draft.phone()) ? "" : draft.phone().trim());
         profile.setPriceCents(draft.priceCents());
         profile.setCurrency(blank(draft.currency()) ? "BRL" : draft.currency().trim().toUpperCase());
         profile.setEthnicity(draft.ethnicity());
         profile.setHeightCm(draft.heightCm());
         profile.setWeightKg(draft.weightKg());
-        profile.setHair(blank(draft.hair()) ? null : draft.hair().trim());
-        profile.setEyes(blank(draft.eyes()) ? null : draft.eyes().trim());
-        profile.setLanguages(blank(draft.languages()) ? null : draft.languages().trim());
-        profile.setAvailability(draft.availability());
-        profile.setTier(draft.tier());
-        profile.setVisible(draft.visible());
+        if (creating) {
+            profile.setAvailability(Availability.AVAILABLE);
+            profile.setTier(Tier.ELITE);
+            profile.setVisible(true);
+        }
         return profile;
     }
 
@@ -170,21 +171,15 @@ public class ProfileAdminService {
             String name,
             int age,
             String city,
-            String descriptionPt,
-            String descriptionEn,
+            String description,
             String email,
+            String sitePhone,
             String phone,
             int priceCents,
             String currency,
             Ethnicity ethnicity,
             int heightCm,
-            int weightKg,
-            String hair,
-            String eyes,
-            String languages,
-            Availability availability,
-            Tier tier,
-            boolean visible
+            int weightKg
     ) {
     }
 }

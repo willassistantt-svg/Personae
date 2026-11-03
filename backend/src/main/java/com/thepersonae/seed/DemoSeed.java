@@ -188,6 +188,7 @@ public class DemoSeed implements ApplicationRunner {
         profile.setDescriptionEn(en);
         profile.setEmail(email);
         profile.setPhone(phone);
+        profile.setSitePhone("+55 11 3180-4040");
         profile.setPriceCents(price);
         profile.setCurrency("BRL");
         profile.setEthnicity(ethnicity);

@@ -48,6 +48,9 @@ public class CompanionProfile {
     @Column(nullable = false, length = 40)
     private String phone;
 
+    @Column(name = "site_phone", length = 40)
+    private String sitePhone;
+
     @Column(name = "price_cents", nullable = false)
     private int priceCents;
 
@@ -55,7 +58,7 @@ public class CompanionProfile {
     private String currency;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 40)
+    @Column(length = 40)
     private Ethnicity ethnicity;
 
     @Column(name = "height_cm", nullable = false)

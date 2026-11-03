@@ -56,26 +56,19 @@ public class AdminProfileController {
             @RequestParam String name,
             @RequestParam int age,
             @RequestParam String city,
-            @RequestParam String descriptionPt,
-            @RequestParam String descriptionEn,
-            @RequestParam String email,
-            @RequestParam String phone,
-            @RequestParam int priceCents,
-            @RequestParam(defaultValue = "BRL") String currency,
-            @RequestParam String ethnicity,
-            @RequestParam int heightCm,
-            @RequestParam int weightKg,
-            @RequestParam(required = false) String hair,
-            @RequestParam(required = false) String eyes,
-            @RequestParam(required = false) String languages,
-            @RequestParam String availability,
-            @RequestParam String tier,
-            @RequestParam(defaultValue = "true") boolean visible,
+            @RequestParam(required = false) String description,
+            @RequestParam(required = false) String email,
+            @RequestParam(required = false) String sitePhone,
+            @RequestParam(required = false) String phone,
+            @RequestParam(required = false) Integer priceCents,
+            @RequestParam(required = false) String currency,
+            @RequestParam(required = false) String ethnicity,
+            @RequestParam(required = false) Integer heightCm,
+            @RequestParam(required = false) Integer weightKg,
             @RequestParam(value = "photos", required = false) List<MultipartFile> photos,
-            @RequestParam(value = "video", required = false) MultipartFile video,
-            @RequestParam(required = false) String videoLabel
+            @RequestParam(value = "video", required = false) MultipartFile video
     ) {
-        CompanionProfile profile = admin.create(draft(name, age, city, descriptionPt, descriptionEn, email, phone, priceCents, currency, ethnicity, heightCm, weightKg, hair, eyes, languages, availability, tier, visible), photos, video, videoLabel);
+        CompanionProfile profile = admin.create(draft(name, age, city, description, email, sitePhone, phone, priceCents, currency, ethnicity, heightCm, weightKg), photos, video, null);
         return presenter.detail(profile, profiles.mediaFor(profile.getId()), false, profiles.house(), "pt");
     }
 
@@ -85,27 +78,20 @@ public class AdminProfileController {
             @RequestParam String name,
             @RequestParam int age,
             @RequestParam String city,
-            @RequestParam String descriptionPt,
-            @RequestParam String descriptionEn,
-            @RequestParam String email,
-            @RequestParam String phone,
-            @RequestParam int priceCents,
-            @RequestParam(defaultValue = "BRL") String currency,
-            @RequestParam String ethnicity,
-            @RequestParam int heightCm,
-            @RequestParam int weightKg,
-            @RequestParam(required = false) String hair,
-            @RequestParam(required = false) String eyes,
-            @RequestParam(required = false) String languages,
-            @RequestParam String availability,
-            @RequestParam String tier,
-            @RequestParam(defaultValue = "true") boolean visible,
+            @RequestParam(required = false) String description,
+            @RequestParam(required = false) String email,
+            @RequestParam(required = false) String sitePhone,
+            @RequestParam(required = false) String phone,
+            @RequestParam(required = false) Integer priceCents,
+            @RequestParam(required = false) String currency,
+            @RequestParam(required = false) String ethnicity,
+            @RequestParam(required = false) Integer heightCm,
+            @RequestParam(required = false) Integer weightKg,
             @RequestParam(value = "photos", required = false) List<MultipartFile> photos,
             @RequestParam(value = "video", required = false) MultipartFile video,
-            @RequestParam(required = false) String videoLabel,
             @RequestParam(value = "removeMediaIds", required = false) List<UUID> removeMediaIds
     ) {
-        CompanionProfile profile = admin.update(id, draft(name, age, city, descriptionPt, descriptionEn, email, phone, priceCents, currency, ethnicity, heightCm, weightKg, hair, eyes, languages, availability, tier, visible), photos, video, videoLabel, removeMediaIds);
+        CompanionProfile profile = admin.update(id, draft(name, age, city, description, email, sitePhone, phone, priceCents, currency, ethnicity, heightCm, weightKg), photos, video, null, removeMediaIds);
         return presenter.detail(profile, profiles.mediaFor(profile.getId()), false, profiles.house(), "pt");
     }
 
@@ -122,14 +108,17 @@ public class AdminProfileController {
     }
 
     private ProfileAdminService.ProfileDraft draft(
-            String name, int age, String city, String descriptionPt, String descriptionEn, String email, String phone,
-            int priceCents, String currency, String ethnicity, int heightCm, int weightKg, String hair, String eyes,
-            String languages, String availability, String tier, boolean visible
+            String name, int age, String city, String description, String email, String sitePhone, String phone,
+            Integer priceCents, String currency, String ethnicity, Integer heightCm, Integer weightKg
     ) {
+        Ethnicity parsed = ethnicity == null || ethnicity.isBlank() ? null : Ethnicity.valueOf(ethnicity.trim().toUpperCase());
         return new ProfileAdminService.ProfileDraft(
-                name, age, city, descriptionPt, descriptionEn, email, phone, priceCents, currency,
-                Ethnicity.valueOf(ethnicity), heightCm, weightKg, hair, eyes, languages,
-                Availability.valueOf(availability), Tier.valueOf(tier), visible
+                name, age, city, description, email, sitePhone, phone,
+                priceCents == null ? 0 : priceCents,
+                currency,
+                parsed,
+                heightCm == null ? 0 : heightCm,
+                weightKg == null ? 0 : weightKg
         );
     }
 

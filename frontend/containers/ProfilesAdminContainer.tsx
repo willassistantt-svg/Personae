@@ -55,7 +55,7 @@ export function ProfilesAdminContainer() {
                   <h4 className="break-words font-serif text-2xl italic sm:text-3xl">{card.name}</h4>
                   <p className="text-xs text-zincMuted">{card.age} · {card.city}</p>
                 </div>
-                <StatusPill tone={card.visible ? "green" : "rose"}>{card.visible ? t(`tier.${card.tier}`) : t("profiles.hidden")}</StatusPill>
+                <StatusPill tone={card.visible ? "green" : "rose"}>{card.visible ? t("profiles.listed") : t("profiles.hidden")}</StatusPill>
               </div>
               <div className="mt-4 flex flex-wrap gap-2">
                 <Link href={`/admin/profiles/${card.id}`} className="inline-flex min-h-11 items-center rounded-2xl border border-hairline px-4 py-2 text-[10px] font-bold uppercase tracking-widest">
