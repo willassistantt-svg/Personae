@@ -42,7 +42,7 @@ export function MemberChrome({
   }, [router.asPath]);
 
   async function signOut() {
-    await api("/api/auth/logout", { method: "POST" });
+    await api("/api/auth/logout", { method: "POST", success: "feedback.signedOut" });
     await client.invalidateQueries({ queryKey: ["me"] });
     router.push("/");
   }

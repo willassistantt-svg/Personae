@@ -89,9 +89,10 @@ public class AdminProfileController {
             @RequestParam(required = false) Integer heightCm,
             @RequestParam(required = false) Integer weightKg,
             @RequestParam(value = "photos", required = false) List<MultipartFile> photos,
-            @RequestParam(value = "video", required = false) MultipartFile video
+            @RequestParam(value = "video", required = false) MultipartFile video,
+            @RequestParam(value = "photoOrder", required = false) List<String> photoOrder
     ) {
-        CompanionProfile profile = admin.update(id, draft(name, age, city, description, email, sitePhone, phone, priceCents, currency, ethnicity, heightCm, weightKg), photos, video, null);
+        CompanionProfile profile = admin.update(id, draft(name, age, city, description, email, sitePhone, phone, priceCents, currency, ethnicity, heightCm, weightKg), photos, video, null, photoOrder);
         return presenter.detail(profile, profiles.mediaFor(profile.getId()), profiles.house(), "pt");
     }
 

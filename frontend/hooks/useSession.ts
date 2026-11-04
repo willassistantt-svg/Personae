@@ -7,7 +7,7 @@ export function useSession() {
     queryKey: ["me"],
     queryFn: async () => {
       try {
-        return await api<SessionUser>("/api/auth/me");
+        return await api<SessionUser>("/api/auth/me", { quiet: true });
       } catch (error) {
         if (error instanceof ApiError && (error.status === 401 || error.status === 403)) {
           return null;

@@ -30,7 +30,7 @@ export function MemberCreateContainer() {
     form.set("sendEmail", form.get("sendEmail") === "on" ? "true" : "false");
     setError(null);
     try {
-      const result = await api<Issued>("/api/admin/members", { method: "POST", form });
+      const result = await api<Issued>("/api/admin/members", { method: "POST", form, success: "feedback.memberCreated" });
       setIssued(result);
     } catch (caught) {
       setError(t(errorKey(caught instanceof ApiError ? caught.code : undefined)));

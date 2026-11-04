@@ -17,7 +17,10 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -72,16 +75,19 @@ public class ProfileAdminService {
             ProfileDraft draft,
             List<MultipartFile> photos,
             MultipartFile video,
-            String videoLabel
+            String videoLabel,
+            List<String> photoOrder
     ) {
         CompanionProfile profile = managed(id);
         apply(profile, draft, false);
         profileService.validateProfile(profile);
-        int order = media.findByProfileIdOrderBySortOrderAsc(id).stream().mapToInt(ProfileMedia::getSortOrder).max().orElse(-1) + 1;
+        List<ProfileMedia> before = media.findByProfileIdOrderBySortOrderAsc(id);
+        int order = before.stream().mapToInt(ProfileMedia::getSortOrder).max().orElse(-1) + 1;
+        List<ProfileMedia> added = new ArrayList<>();
         if (photos != null) {
             for (MultipartFile photo : photos) {
                 if (photo != null && !photo.isEmpty()) {
-                    saveMedia(profile, photo, MediaKind.PHOTO, null, null, order++);
+                    added.add(saveMedia(profile, photo, MediaKind.PHOTO, null, null, order++));
                 }
             }
         }
@@ -92,7 +98,9 @@ public class ProfileAdminService {
         if (profileService.photoCount(items) < 1) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "PHOTO_REQUIRED", "Keep at least one photograph");
         }
-        arrange(items, items.stream().filter(item -> item.getKind() == MediaKind.PHOTO).toList());
+        Map<String, ProfileMedia> saved = new LinkedHashMap<>();
+        before.stream().filter(item -> item.getKind() == MediaKind.PHOTO).forEach(item -> saved.put(item.getId().toString(), item));
+        arrange(items, orderPhotos(photoOrder, saved, added));
         audit.record("PROFILE_UPDATED", profile.getName(), profile.isVisible() ? "VISIBLE" : "HIDDEN");
         return profile;
     }
@@ -169,7 +177,38 @@ public class ProfileAdminService {
         }
     }
 
-    private void saveMedia(CompanionProfile profile, MultipartFile file, MediaKind kind, String label, String duration, int order) {
+    /**
+     * Final photo order for a save. Tokens are saved photo ids or "new:&lt;n&gt;" (the n-th uploaded file).
+     * Unknown or repeated tokens are ignored; photos the tokens leave out keep their place at the end.
+     */
+    static <T> List<T> orderPhotos(List<String> tokens, Map<String, T> saved, List<T> added) {
+        LinkedHashSet<T> ordered = new LinkedHashSet<>();
+        if (tokens != null) {
+            for (String token : tokens) {
+                if (token == null) {
+                    continue;
+                }
+                String value = token.trim();
+                if (value.startsWith("new:")) {
+                    try {
+                        int index = Integer.parseInt(value.substring(4));
+                        if (index >= 0 && index < added.size()) {
+                            ordered.add(added.get(index));
+                        }
+                    } catch (NumberFormatException ignored) {
+                        // skip malformed token
+                    }
+                } else if (saved.containsKey(value)) {
+                    ordered.add(saved.get(value));
+                }
+            }
+        }
+        ordered.addAll(saved.values());
+        ordered.addAll(added);
+        return new ArrayList<>(ordered);
+    }
+
+    private ProfileMedia saveMedia(CompanionProfile profile, MultipartFile file, MediaKind kind, String label, String duration, int order) {
         ProfileMedia item = new ProfileMedia();
         item.setProfile(profile);
         item.setKind(kind);
@@ -177,7 +216,7 @@ public class ProfileAdminService {
         item.setLabel(label);
         item.setDurationLabel(duration);
         item.setSortOrder(order);
-        media.save(item);
+        return media.save(item);
     }
 
     private String storePhoto(MultipartFile file) {

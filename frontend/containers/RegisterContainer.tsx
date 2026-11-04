@@ -29,7 +29,7 @@ export function RegisterContainer() {
     setPending(true);
     setError(null);
     try {
-      await api("/api/auth/register", { method: "POST", form });
+      await api("/api/auth/register", { method: "POST", form, success: "feedback.registered" });
       setDone(true);
     } catch (caught) {
       setError(t(errorKey(caught instanceof ApiError ? caught.code : undefined)));

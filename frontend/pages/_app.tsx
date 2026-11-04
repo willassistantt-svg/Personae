@@ -3,6 +3,7 @@ import Head from "next/head";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Inter, Playfair_Display } from "next/font/google";
 import { useState } from "react";
+import { ActivityLayer } from "@/components/ActivityLayer";
 import { LanguageProvider } from "@/lib/i18n";
 import "@/styles/globals.css";
 
@@ -19,6 +20,7 @@ export default function App({ Component, pageProps }: AppProps) {
       <LanguageProvider>
         <div className={`${sans.variable} ${serif.variable} min-h-screen bg-ink font-sans text-zincBright antialiased`}>
           <Component {...pageProps} />
+          <ActivityLayer />
         </div>
       </LanguageProvider>
     </QueryClientProvider>

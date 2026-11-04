@@ -30,12 +30,12 @@ export function AdminShell({ user, title, children }: { user: SessionUser; title
   const client = useQueryClient();
   const health = useQuery({
     queryKey: ["health"],
-    queryFn: () => api<{ status: string }>("/api/health"),
+    queryFn: () => api<{ status: string }>("/api/health", { quiet: true }),
     retry: false,
   });
 
   async function signOut() {
-    await api("/api/auth/logout", { method: "POST" });
+    await api("/api/auth/logout", { method: "POST", success: "feedback.signedOut" });
     await client.invalidateQueries({ queryKey: ["me"] });
     router.push("/");
   }

@@ -21,10 +21,15 @@ export function SettingsContainer() {
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
-    await api<House>("/api/admin/settings", {
-      method: "PUT",
-      body: { sitePhone: String(form.get("sitePhone") || ""), siteEmail: String(form.get("siteEmail") || "") },
-    });
+    setSaved(false);
+    try {
+      await api<House>("/api/admin/settings", {
+        method: "PUT",
+        body: { sitePhone: String(form.get("sitePhone") || ""), siteEmail: String(form.get("siteEmail") || "") },
+      });
+    } catch {
+      return;
+    }
     await client.invalidateQueries({ queryKey: ["settings"] });
     setSaved(true);
   }
