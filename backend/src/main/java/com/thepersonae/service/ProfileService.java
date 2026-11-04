@@ -3,24 +3,18 @@ package com.thepersonae.service;
 import com.thepersonae.domain.Availability;
 import com.thepersonae.domain.CompanionProfile;
 import com.thepersonae.domain.Ethnicity;
-import com.thepersonae.domain.Favorite;
 import com.thepersonae.domain.MediaKind;
 import com.thepersonae.domain.ProfileMedia;
 import com.thepersonae.domain.SiteSettings;
 import com.thepersonae.domain.Tier;
-import com.thepersonae.domain.UserAccount;
 import com.thepersonae.repository.CompanionProfileRepository;
-import com.thepersonae.repository.FavoriteRepository;
 import com.thepersonae.repository.ProfileMediaRepository;
 import com.thepersonae.repository.SiteSettingsRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Instant;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.UUID;
 
 @Service
@@ -28,18 +22,15 @@ public class ProfileService {
 
     private final CompanionProfileRepository profiles;
     private final ProfileMediaRepository media;
-    private final FavoriteRepository favorites;
     private final SiteSettingsRepository settings;
 
     public ProfileService(
             CompanionProfileRepository profiles,
             ProfileMediaRepository media,
-            FavoriteRepository favorites,
             SiteSettingsRepository settings
     ) {
         this.profiles = profiles;
         this.media = media;
-        this.favorites = favorites;
         this.settings = settings;
     }
 
@@ -80,26 +71,6 @@ public class ProfileService {
             return List.of();
         }
         return media.findByProfileIdInOrderBySortOrderAsc(ids);
-    }
-
-    @Transactional(readOnly = true)
-    public Set<UUID> favoriteIds(UserAccount user) {
-        return new HashSet<>(favorites.findByUserId(user.getId()).stream().map(Favorite::getProfileId).toList());
-    }
-
-    @Transactional
-    public boolean toggleFavorite(UserAccount user, UUID profileId) {
-        visible(profileId);
-        if (favorites.existsByUserIdAndProfileId(user.getId(), profileId)) {
-            favorites.deleteByUserIdAndProfileId(user.getId(), profileId);
-            return false;
-        }
-        Favorite favorite = new Favorite();
-        favorite.setUserId(user.getId());
-        favorite.setProfileId(profileId);
-        favorite.setCreatedAt(Instant.now());
-        favorites.save(favorite);
-        return true;
     }
 
     @Transactional(readOnly = true)

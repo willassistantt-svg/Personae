@@ -1,12 +1,13 @@
 import { useRouter } from "next/router";
-import { FormEvent, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { ChangeEvent, DragEvent, FormEvent, useEffect, useRef, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { ArrowLeft, ArrowRight, Trash } from "@phosphor-icons/react";
 import { AdminShell } from "@/components/AdminShell";
 import { Area, Field, GoldButton, LoadingBlock, Notice, SelectField } from "@/components/ui";
 import { useGuard } from "@/hooks/useGuard";
 import { ApiError, api } from "@/lib/api";
 import { errorKey, useI18n } from "@/lib/i18n";
-import type { Detail } from "@/lib/types";
+import type { Detail, Media } from "@/lib/types";
 import { personaIssue } from "@/lib/validation";
 
 const ethnicities = ["EUROPEAN", "MEDITERRANEAN", "LATIN_AMERICAN", "AFRICAN", "ASIAN", "MIDDLE_EASTERN", "MIXED", "OTHER"];
@@ -21,26 +22,103 @@ const issueKey = {
   fee: "errors.validation",
 } as const;
 
+type PendingPhoto = { key: string; file: File; url: string };
+
+function move<T>(items: T[], from: number, to: number): T[] {
+  if (from === to || to < 0 || to >= items.length) return items;
+  const next = [...items];
+  const [item] = next.splice(from, 1);
+  next.splice(to, 0, item);
+  return next;
+}
+
 export function ProfileFormContainer() {
   const session = useGuard(true);
   const { t } = useI18n();
   const router = useRouter();
+  const queryClient = useQueryClient();
   const id = typeof router.query.id === "string" ? router.query.id : "";
   const editing = router.pathname.includes("[id]");
+  const queryKey = ["admin-profile", id];
   const existing = useQuery({
-    queryKey: ["admin-profile", id],
+    queryKey,
     enabled: Boolean(editing && id && session.user?.role === "ADMIN"),
     queryFn: () => api<Detail>(`/api/admin/profiles/${id}?locale=pt`),
   });
   const [error, setError] = useState<string | null>(null);
-  const [removeIds, setRemoveIds] = useState<string[]>([]);
+  const [photoOrder, setPhotoOrder] = useState<Media[] | null>(null);
+  const [pending, setPending] = useState<PendingPhoto[]>([]);
+  const [busy, setBusy] = useState(false);
+  const pendingRef = useRef(pending);
+  pendingRef.current = pending;
+
+  useEffect(() => () => pendingRef.current.forEach((item) => URL.revokeObjectURL(item.url)), []);
+
+  const persona = existing.data;
+  const savedPhotos = photoOrder ?? persona?.photos ?? [];
+
+  function fail(caught: unknown) {
+    setError(t(errorKey(caught instanceof ApiError ? caught.code : undefined)));
+  }
+
+  function refresh(detail: Detail) {
+    queryClient.setQueryData(queryKey, detail);
+    setPhotoOrder(null);
+  }
+
+  async function reorderSaved(from: number, to: number) {
+    const next = move(savedPhotos, from, to);
+    if (next === savedPhotos || busy) return;
+    const previous = savedPhotos;
+    setPhotoOrder(next);
+    setBusy(true);
+    setError(null);
+    try {
+      refresh(await api<Detail>(`/api/admin/profiles/${id}/photos/order`, { method: "PUT", body: { ids: next.map((item) => item.id) } }));
+    } catch (caught) {
+      setPhotoOrder(previous);
+      fail(caught);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function removeSaved(item: Media) {
+    if (busy) return;
+    if (item.kind === "PHOTO" && savedPhotos.length + pending.length <= 1) {
+      setError(t("errors.photo"));
+      return;
+    }
+    if (!window.confirm(t(item.kind === "PHOTO" ? "profiles.confirmPhoto" : "profiles.confirmVideo"))) return;
+    setBusy(true);
+    setError(null);
+    try {
+      refresh(await api<Detail>(`/api/admin/profiles/${id}/media/${item.id}`, { method: "DELETE" }));
+    } catch (caught) {
+      fail(caught);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function addPending(event: ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(event.target.files ?? []).filter((file) => file.size > 0);
+    event.target.value = "";
+    setPending((current) => [
+      ...current,
+      ...files.map((file) => ({ key: `${file.name}-${file.lastModified}-${Math.random().toString(36).slice(2)}`, file, url: URL.createObjectURL(file) })),
+    ]);
+  }
+
+  function removePending(item: PendingPhoto) {
+    if (!window.confirm(t("profiles.confirmPhoto"))) return;
+    URL.revokeObjectURL(item.url);
+    setPending((current) => current.filter((value) => value.key !== item.key));
+  }
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
-    const photos = form.getAll("photos").filter((value) => value instanceof File && value.size > 0);
-    const current = existing.data;
-    const keptPhotos = (current?.photos.length ?? 0) - removeIds.filter((mediaId) => current?.photos.some((photo) => photo.id === mediaId)).length;
     const issue = personaIssue({
       name: String(form.get("name") || ""),
       city: String(form.get("city") || ""),
@@ -49,7 +127,7 @@ export function ProfileFormContainer() {
       heightCm: String(form.get("heightCm") || ""),
       weightKg: String(form.get("weightKg") || ""),
       fee: String(form.get("fee") || ""),
-      photoCount: photos.length + (editing ? keptPhotos : 0),
+      photoCount: pending.length + (editing ? savedPhotos.length : 0),
     });
     if (issue) {
       setError(t(issueKey[issue]));
@@ -58,8 +136,7 @@ export function ProfileFormContainer() {
     const fee = String(form.get("fee") || "").trim();
     form.delete("fee");
     if (fee) form.set("priceCents", String(Math.round(Number(fee) * 100)));
-    form.delete("photos");
-    photos.forEach((file) => form.append("photos", file));
+    pending.forEach((item) => form.append("photos", item.file));
     const video = form.get("video");
     if (!(video instanceof File) || video.size === 0) form.delete("video");
     for (const field of ["heightCm", "weightKg", "currency", "ethnicity"] as const) {
@@ -71,8 +148,8 @@ export function ProfileFormContainer() {
     form.set("email", String(form.get("email") || "").trim());
     form.set("sitePhone", String(form.get("sitePhone") || "").trim());
     form.set("phone", String(form.get("phone") || "").trim());
-    removeIds.forEach((mediaId) => form.append("removeMediaIds", mediaId));
     setError(null);
+    setBusy(true);
     try {
       const saved = await api<Detail>(editing ? `/api/admin/profiles/${id}` : "/api/admin/profiles", {
         method: editing ? "PUT" : "POST",
@@ -80,14 +157,15 @@ export function ProfileFormContainer() {
       });
       router.push(`/admin/profiles/${saved.id}`);
     } catch (caught) {
-      setError(t(errorKey(caught instanceof ApiError ? caught.code : undefined)));
+      fail(caught);
+    } finally {
+      setBusy(false);
     }
   }
 
   if (!session.user || session.user.role !== "ADMIN" || (editing && existing.isLoading)) {
     return <LoadingBlock label={t("common.loading")} />;
   }
-  const persona = existing.data;
   const required = (label: string) => `${label} *`;
 
   return (
@@ -97,26 +175,38 @@ export function ProfileFormContainer() {
         {error ? <Notice>{error}</Notice> : null}
         <div>
           <span className="mb-2 block text-[10px] font-bold uppercase tracking-widest text-zincMuted">{required(t("profiles.photos"))}</span>
-          {persona && persona.photos.length > 0 ? (
+          {savedPhotos.length > 0 || pending.length > 0 ? (
             <div className="mb-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
-              {persona.photos.map((item) => (
-                <label key={item.id} className={`overflow-hidden rounded-2xl border ${removeIds.includes(item.id) ? "border-rose" : "border-hairline"}`}>
-                  <img src={item.url} alt="" className="h-28 w-full object-cover" />
-                  <span className="flex items-center gap-2 p-2 text-[10px] uppercase tracking-widest text-zincMuted">
-                    <input
-                      type="checkbox"
-                      checked={removeIds.includes(item.id)}
-                      onChange={(event) =>
-                        setRemoveIds((current) => (event.target.checked ? [...current, item.id] : current.filter((value) => value !== item.id)))
-                      }
-                    />
-                    {t("profiles.removeMedia")}
-                  </span>
-                </label>
+              {savedPhotos.map((item, index) => (
+                <PhotoTile
+                  key={item.id}
+                  url={item.url}
+                  index={index}
+                  total={savedPhotos.length}
+                  badge={index === 0 ? t("profiles.cover") : null}
+                  disabled={busy}
+                  onMove={reorderSaved}
+                  onRemove={() => removeSaved(item)}
+                  t={t}
+                />
+              ))}
+              {pending.map((item, index) => (
+                <PhotoTile
+                  key={item.key}
+                  url={item.url}
+                  index={index}
+                  total={pending.length}
+                  badge={savedPhotos.length === 0 && index === 0 ? t("profiles.cover") : t("profiles.newPhoto")}
+                  disabled={busy}
+                  pending
+                  onMove={(from, to) => setPending((current) => move(current, from, to))}
+                  onRemove={() => removePending(item)}
+                  t={t}
+                />
               ))}
             </div>
           ) : null}
-          <input name="photos" type="file" accept="image/jpeg,image/png,image/webp" multiple className="text-xs text-zincMuted" />
+          <input type="file" accept="image/jpeg,image/png,image/webp" multiple onChange={addPending} className="text-xs text-zincMuted" />
           <span className="mt-2 block text-[11px] text-zincMuted">{t("profiles.photosHelp")}</span>
         </div>
         <div>
@@ -124,19 +214,22 @@ export function ProfileFormContainer() {
           {persona && persona.videos.length > 0 ? (
             <div className="mb-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
               {persona.videos.map((item) => (
-                <label key={item.id} className={`overflow-hidden rounded-2xl border ${removeIds.includes(item.id) ? "border-rose" : "border-hairline"}`}>
-                  <span className="block p-4 text-xs text-zincBright">{t("profiles.video")}</span>
-                  <span className="flex items-center gap-2 p-2 text-[10px] uppercase tracking-widest text-zincMuted">
-                    <input
-                      type="checkbox"
-                      checked={removeIds.includes(item.id)}
-                      onChange={(event) =>
-                        setRemoveIds((current) => (event.target.checked ? [...current, item.id] : current.filter((value) => value !== item.id)))
-                      }
-                    />
-                    {t("profiles.removeMedia")}
-                  </span>
-                </label>
+                <div key={item.id} className="overflow-hidden rounded-2xl border border-hairline">
+                  <video src={item.url} className="aspect-video w-full bg-black object-cover" muted playsInline preload="metadata" />
+                  <div className="flex items-center justify-between gap-2 p-2">
+                    <span className="truncate text-[10px] uppercase tracking-widest text-zincMuted">{item.label || t("profiles.video")}</span>
+                    <button
+                      type="button"
+                      disabled={busy}
+                      onClick={() => removeSaved(item)}
+                      aria-label={t("profiles.removeMedia")}
+                      title={t("profiles.removeMedia")}
+                      className="rounded-full p-1.5 text-zincMuted transition hover:text-rose disabled:opacity-40"
+                    >
+                      <Trash size={14} />
+                    </button>
+                  </div>
+                </div>
               ))}
             </div>
           ) : null}
@@ -173,8 +266,90 @@ export function ProfileFormContainer() {
           <Field label={t("catalog.height")} name="heightCm" type="number" min={120} max={230} defaultValue={persona && persona.heightCm > 0 ? persona.heightCm : ""} />
           <Field label={t("detail.weight")} name="weightKg" type="number" min={35} max={200} defaultValue={persona && persona.weightKg > 0 ? persona.weightKg : ""} />
         </div>
-        <GoldButton className="w-full sm:w-fit">{t("profiles.save")}</GoldButton>
+        <GoldButton className="w-full sm:w-fit" disabled={busy}>{t("profiles.save")}</GoldButton>
       </form>
     </AdminShell>
+  );
+}
+
+function PhotoTile({
+  url,
+  index,
+  total,
+  badge,
+  disabled,
+  pending = false,
+  onMove,
+  onRemove,
+  t,
+}: {
+  url: string;
+  index: number;
+  total: number;
+  badge: string | null;
+  disabled: boolean;
+  pending?: boolean;
+  onMove: (from: number, to: number) => void;
+  onRemove: () => void;
+  t: (key: string) => string;
+}) {
+  const group = pending ? "pending" : "saved";
+
+  function onDrop(event: DragEvent<HTMLDivElement>) {
+    event.preventDefault();
+    const [source, raw] = event.dataTransfer.getData("text/plain").split(":");
+    const from = Number(raw);
+    if (source === group && !Number.isNaN(from) && from !== index) onMove(from, index);
+  }
+
+  return (
+    <div
+      draggable={!disabled}
+      onDragStart={(event) => event.dataTransfer.setData("text/plain", `${group}:${index}`)}
+      onDragOver={(event) => event.preventDefault()}
+      onDrop={onDrop}
+      className={`group overflow-hidden rounded-2xl border ${pending ? "border-dashed border-champagne/60" : "border-hairline"} ${disabled ? "" : "cursor-grab"}`}
+    >
+      <div className="relative">
+        <img src={url} alt="" className="aspect-[3/4] w-full object-cover" draggable={false} />
+        {badge ? (
+          <span className="absolute left-2 top-2 rounded-full bg-black/70 px-2 py-1 text-[9px] font-bold uppercase tracking-widest text-champagne">{badge}</span>
+        ) : null}
+      </div>
+      <div className="flex items-center justify-between gap-1 p-2">
+        <div className="flex gap-1">
+          <button
+            type="button"
+            disabled={disabled || index === 0}
+            onClick={() => onMove(index, index - 1)}
+            aria-label={t("profiles.moveLeft")}
+            title={t("profiles.moveLeft")}
+            className="rounded-full p-1.5 text-zincMuted transition hover:text-champagne disabled:opacity-30"
+          >
+            <ArrowLeft size={14} />
+          </button>
+          <button
+            type="button"
+            disabled={disabled || index === total - 1}
+            onClick={() => onMove(index, index + 1)}
+            aria-label={t("profiles.moveRight")}
+            title={t("profiles.moveRight")}
+            className="rounded-full p-1.5 text-zincMuted transition hover:text-champagne disabled:opacity-30"
+          >
+            <ArrowRight size={14} />
+          </button>
+        </div>
+        <button
+          type="button"
+          disabled={disabled}
+          onClick={onRemove}
+          aria-label={t("profiles.removeMedia")}
+          title={t("profiles.removeMedia")}
+          className="rounded-full p-1.5 text-zincMuted transition hover:text-rose disabled:opacity-40"
+        >
+          <Trash size={14} />
+        </button>
+      </div>
+    </div>
   );
 }

@@ -7,13 +7,16 @@ import com.thepersonae.domain.MediaKind;
 import com.thepersonae.domain.ProfileMedia;
 import com.thepersonae.domain.Tier;
 import com.thepersonae.repository.CompanionProfileRepository;
-import com.thepersonae.repository.FavoriteRepository;
 import com.thepersonae.repository.ProfileMediaRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.UUID;
 
@@ -22,24 +25,24 @@ public class ProfileAdminService {
 
     private final CompanionProfileRepository profiles;
     private final ProfileMediaRepository media;
-    private final FavoriteRepository favorites;
     private final ProfileService profileService;
     private final FileStorageService storage;
+    private final PhotoProcessor photoProcessor;
     private final AuditService audit;
 
     public ProfileAdminService(
             CompanionProfileRepository profiles,
             ProfileMediaRepository media,
-            FavoriteRepository favorites,
             ProfileService profileService,
             FileStorageService storage,
+            PhotoProcessor photoProcessor,
             AuditService audit
     ) {
         this.profiles = profiles;
         this.media = media;
-        this.favorites = favorites;
         this.profileService = profileService;
         this.storage = storage;
+        this.photoProcessor = photoProcessor;
         this.audit = audit;
     }
 
@@ -69,22 +72,11 @@ public class ProfileAdminService {
             ProfileDraft draft,
             List<MultipartFile> photos,
             MultipartFile video,
-            String videoLabel,
-            List<UUID> removeMediaIds
+            String videoLabel
     ) {
         CompanionProfile profile = managed(id);
         apply(profile, draft, false);
         profileService.validateProfile(profile);
-        if (removeMediaIds != null) {
-            for (UUID mediaId : removeMediaIds) {
-                media.findById(mediaId).ifPresent(item -> {
-                    if (item.getProfile().getId().equals(id)) {
-                        storage.delete(item.getStoragePath());
-                        media.delete(item);
-                    }
-                });
-            }
-        }
         int order = media.findByProfileIdOrderBySortOrderAsc(id).stream().mapToInt(ProfileMedia::getSortOrder).max().orElse(-1) + 1;
         if (photos != null) {
             for (MultipartFile photo : photos) {
@@ -96,11 +88,48 @@ public class ProfileAdminService {
         if (video != null && !video.isEmpty()) {
             saveMedia(profile, video, MediaKind.VIDEO, blank(videoLabel) ? null : videoLabel.trim(), null, order);
         }
-        long photosLeft = profileService.photoCount(media.findByProfileIdOrderBySortOrderAsc(id));
-        if (photosLeft < 1) {
+        List<ProfileMedia> items = media.findByProfileIdOrderBySortOrderAsc(id);
+        if (profileService.photoCount(items) < 1) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "PHOTO_REQUIRED", "Keep at least one photograph");
         }
+        arrange(items, items.stream().filter(item -> item.getKind() == MediaKind.PHOTO).toList());
         audit.record("PROFILE_UPDATED", profile.getName(), profile.isVisible() ? "VISIBLE" : "HIDDEN");
+        return profile;
+    }
+
+    @Transactional
+    public CompanionProfile reorderPhotos(UUID id, List<UUID> photoIds) {
+        CompanionProfile profile = managed(id);
+        List<ProfileMedia> items = media.findByProfileIdOrderBySortOrderAsc(id);
+        List<ProfileMedia> current = items.stream().filter(item -> item.getKind() == MediaKind.PHOTO).toList();
+        if (photoIds == null || photoIds.size() != current.size() || !new HashSet<>(photoIds).equals(new HashSet<>(current.stream().map(ProfileMedia::getId).toList()))) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "VALIDATION", "Send every photograph of this persona once");
+        }
+        List<ProfileMedia> ordered = new ArrayList<>();
+        for (UUID photoId : photoIds) {
+            current.stream().filter(item -> item.getId().equals(photoId)).findFirst().ifPresent(ordered::add);
+        }
+        arrange(items, ordered);
+        audit.record("PROFILE_PHOTOS_ORDERED", profile.getName(), "OK");
+        return profile;
+    }
+
+    @Transactional
+    public CompanionProfile removeMedia(UUID id, UUID mediaId) {
+        CompanionProfile profile = managed(id);
+        List<ProfileMedia> items = media.findByProfileIdOrderBySortOrderAsc(id);
+        ProfileMedia target = items.stream()
+                .filter(item -> item.getId().equals(mediaId))
+                .findFirst()
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "NOT_FOUND", "Media not found"));
+        if (target.getKind() == MediaKind.PHOTO && profileService.photoCount(items) <= 1) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "PHOTO_REQUIRED", "Keep at least one photograph");
+        }
+        storage.delete(target.getStoragePath());
+        media.delete(target);
+        List<ProfileMedia> left = items.stream().filter(item -> !item.getId().equals(mediaId)).toList();
+        arrange(left, left.stream().filter(item -> item.getKind() == MediaKind.PHOTO).toList());
+        audit.record(target.getKind() == MediaKind.PHOTO ? "PROFILE_PHOTO_REMOVED" : "PROFILE_VIDEO_REMOVED", profile.getName(), "REMOVED");
         return profile;
     }
 
@@ -119,7 +148,6 @@ public class ProfileAdminService {
         items.forEach(item -> storage.delete(item.getStoragePath()));
         media.deleteAll(items);
         media.flush();
-        favorites.deleteByProfileId(id);
         profiles.delete(profile);
         audit.record("PROFILE_REMOVED", profile.getName(), "REMOVED");
     }
@@ -129,15 +157,37 @@ public class ProfileAdminService {
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "NOT_FOUND", "Profile not found"));
     }
 
+    private void arrange(List<ProfileMedia> items, List<ProfileMedia> orderedPhotos) {
+        int order = 0;
+        for (ProfileMedia photo : orderedPhotos) {
+            photo.setSortOrder(order++);
+        }
+        for (ProfileMedia item : items) {
+            if (item.getKind() == MediaKind.VIDEO) {
+                item.setSortOrder(order++);
+            }
+        }
+    }
+
     private void saveMedia(CompanionProfile profile, MultipartFile file, MediaKind kind, String label, String duration, int order) {
         ProfileMedia item = new ProfileMedia();
         item.setProfile(profile);
         item.setKind(kind);
-        item.setStoragePath(storage.store(file, kind == MediaKind.VIDEO ? "videos" : "photos"));
+        item.setStoragePath(kind == MediaKind.VIDEO ? storage.store(file, "videos") : storePhoto(file));
         item.setLabel(label);
         item.setDurationLabel(duration);
         item.setSortOrder(order);
         media.save(item);
+    }
+
+    private String storePhoto(MultipartFile file) {
+        byte[] original;
+        try {
+            original = file.getBytes();
+        } catch (IOException ex) {
+            throw new ApiException(HttpStatus.INTERNAL_SERVER_ERROR, "STORAGE_FAILED", "Could not store the file");
+        }
+        return storage.store(new ByteArrayInputStream(photoProcessor.normalize(original)), "photos", "photo.jpg");
     }
 
     private CompanionProfile apply(CompanionProfile profile, ProfileDraft draft, boolean creating) {

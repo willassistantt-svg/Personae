@@ -29,7 +29,6 @@ export type Card = {
   tier: string;
   availability: string;
   visible: boolean;
-  favorite: boolean;
   photos: Media[];
 };
 

@@ -8,13 +8,11 @@ import com.thepersonae.domain.CompanionProfile;
 import com.thepersonae.domain.Ethnicity;
 import com.thepersonae.domain.MediaKind;
 import com.thepersonae.domain.ProfileMedia;
-import com.thepersonae.domain.SiteSettings;
 import com.thepersonae.domain.Tier;
 import com.thepersonae.domain.TokenPurpose;
 import com.thepersonae.domain.UserAccount;
 import com.thepersonae.repository.CompanionProfileRepository;
 import com.thepersonae.repository.ProfileMediaRepository;
-import com.thepersonae.repository.SiteSettingsRepository;
 import com.thepersonae.repository.UserAccountRepository;
 import com.thepersonae.service.AuditService;
 import com.thepersonae.service.FileStorageService;
@@ -40,7 +38,6 @@ public class DemoSeed implements ApplicationRunner {
     private final UserAccountRepository users;
     private final CompanionProfileRepository profiles;
     private final ProfileMediaRepository media;
-    private final SiteSettingsRepository settings;
     private final PasswordEncoder encoder;
     private final FileStorageService storage;
     private final TokenService tokens;
@@ -51,7 +48,6 @@ public class DemoSeed implements ApplicationRunner {
             UserAccountRepository users,
             CompanionProfileRepository profiles,
             ProfileMediaRepository media,
-            SiteSettingsRepository settings,
             PasswordEncoder encoder,
             FileStorageService storage,
             TokenService tokens,
@@ -61,7 +57,6 @@ public class DemoSeed implements ApplicationRunner {
         this.users = users;
         this.profiles = profiles;
         this.media = media;
-        this.settings = settings;
         this.encoder = encoder;
         this.storage = storage;
         this.tokens = tokens;
@@ -71,20 +66,9 @@ public class DemoSeed implements ApplicationRunner {
     @Override
     @Transactional
     public void run(ApplicationArguments args) throws Exception {
-        if (!properties.isSeedEnabled() || users.existsByEmailIgnoreCase(properties.getAdmin().getEmail())) {
+        if (!properties.isSeedEnabled() || users.existsByEmailIgnoreCase("member@thepersonae.com")) {
             return;
         }
-        SiteSettings house = new SiteSettings();
-        house.setId(1);
-        house.setSitePhone("+55 11 3180-4040");
-        house.setSiteEmail("casa@thepersonae.com");
-        house.setUpdatedAt(Instant.now());
-        settings.save(house);
-
-        String[] adminNames = properties.getAdmin().getName().split(" ", 2);
-        user(adminNames[0], adminNames.length > 1 ? adminNames[1] : "Director", properties.getAdmin().getEmail(),
-                properties.getAdmin().getPassword(), LocalDate.of(1984, 4, 12), "+55 11 3180-4040", "São Paulo", "SP", "Brasil",
-                AccountRole.ADMIN, AccountStatus.ACTIVE, "pt", null, 40);
         user("Helena", "Vasconcelos", "member@thepersonae.com", "MemberAccess#2026",
                 LocalDate.of(1991, 6, 2), "+55 21 98888-0101", "Rio de Janeiro", "RJ", "Brasil",
                 AccountRole.USER, AccountStatus.ACTIVE, "pt", null, 18);

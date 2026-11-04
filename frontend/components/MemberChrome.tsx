@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { useRouter } from "next/router";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { SignOut, List, X } from "@phosphor-icons/react";
 import { useQueryClient } from "@tanstack/react-query";
 import { LanguageButton, Wordmark } from "@/components/ui";
@@ -19,6 +19,27 @@ export function MemberChrome({
   const router = useRouter();
   const client = useQueryClient();
   const [menu, setMenu] = useState(false);
+
+  const account = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!menu) return;
+    const onKey = (event: KeyboardEvent) => event.key === "Escape" && setMenu(false);
+    const onPointer = (event: PointerEvent) => {
+      const box = account.current;
+      if (box && box.offsetParent !== null && !box.contains(event.target as Node)) setMenu(false);
+    };
+    window.addEventListener("keydown", onKey);
+    document.addEventListener("pointerdown", onPointer);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.removeEventListener("pointerdown", onPointer);
+    };
+  }, [menu]);
+
+  useEffect(() => {
+    setMenu(false);
+  }, [router.asPath]);
 
   async function signOut() {
     await api("/api/auth/logout", { method: "POST" });
@@ -49,15 +70,41 @@ export function MemberChrome({
             <span className="hidden md:inline-flex">
               <LanguageButton />
             </span>
-            <button type="button" onClick={() => setMenu((value) => !value)} className="hidden items-center gap-3 border-l border-hairline pl-5 lg:flex">
-              <span className="hidden text-right md:block">
-                <span className="block text-[10px] font-bold uppercase tracking-wider">{user.firstName}</span>
-                <span className="block text-[9px] text-zincMuted">{user.memberCode}</span>
-              </span>
-              <span className="flex h-11 w-11 items-center justify-center rounded-full border border-hairline bg-graphite font-serif text-champagne">
-                {user.firstName.slice(0, 1)}
-              </span>
-            </button>
+            <div ref={account} className="relative hidden border-l border-hairline pl-5 lg:block">
+              <button
+                type="button"
+                onClick={() => setMenu((value) => !value)}
+                aria-haspopup="menu"
+                aria-expanded={menu}
+                className="flex items-center gap-3 rounded-full transition-opacity hover:opacity-80"
+              >
+                <span className="text-right">
+                  <span className="block text-[10px] font-bold uppercase tracking-wider">{user.firstName}</span>
+                  <span className="block text-[9px] text-zincMuted">{user.memberCode}</span>
+                </span>
+                <span className={`flex h-11 w-11 items-center justify-center rounded-full border bg-graphite font-serif text-champagne transition-colors ${menu ? "border-champagne/60" : "border-hairline"}`}>
+                  {user.firstName.slice(0, 1)}
+                </span>
+              </button>
+              {menu ? (
+                  <div role="menu" className="absolute right-0 top-full z-50 mt-3 w-60 overflow-hidden rounded-2xl border border-hairline bg-charcoal shadow-2xl shadow-black/60">
+                    <div className="border-b border-hairline px-4 py-3">
+                      <p className="truncate text-sm text-zincBright">{user.firstName} {user.lastName}</p>
+                      <p className="truncate text-[11px] text-zincMuted">{user.email}</p>
+                    </div>
+                    <div className="p-1.5">
+                      <button
+                        type="button"
+                        role="menuitem"
+                        onClick={signOut}
+                        className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-sm text-rose transition-colors hover:bg-rose/10"
+                      >
+                        <SignOut size={16} /> {t("header.signOut")}
+                      </button>
+                    </div>
+                  </div>
+              ) : null}
+            </div>
             <button type="button" className="flex h-11 w-11 items-center justify-center rounded-full border border-hairline lg:hidden" onClick={() => setMenu((value) => !value)} aria-label="Menu">
               <List size={20} />
             </button>
@@ -93,15 +140,6 @@ export function MemberChrome({
               <LanguageButton />
             </div>
             <button type="button" onClick={signOut} className="mt-auto flex w-full items-center gap-2 rounded-2xl px-4 py-4 text-left text-sm text-rose">
-              <SignOut /> {t("header.signOut")}
-            </button>
-          </div>
-        </div>
-      ) : null}
-      {menu ? (
-        <div className="mx-auto hidden max-w-[1600px] justify-end px-8 pt-3 lg:flex">
-          <div className="w-56 rounded-3xl border border-hairline bg-charcoal p-3">
-            <button type="button" onClick={signOut} className="flex w-full items-center gap-2 rounded-2xl px-4 py-3 text-left text-sm text-rose">
               <SignOut /> {t("header.signOut")}
             </button>
           </div>

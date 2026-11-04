@@ -1,6 +1,6 @@
 # The Personae
 
-Casa privada para membros aceitos. O catálogo reúne várias personas, com fotografias, um filme curto e contato. O acesso só abre depois da análise da direção.
+Casa privada para membros aceitos. O catálogo reúne várias personas, com fotografias, um vídeo curto e contato. O acesso só abre depois da análise da direção.
 
 Domínio: [personae.men](https://personae.men). A interface está em português e inglês.
 
@@ -59,31 +59,19 @@ Na pasta do projeto, com o Docker Desktop aberto:
 docker compose up --build -d
 ```
 
-O site fica em [http://localhost](http://localhost). O Nginx recebe a porta 80 e entrega `/` ao Next.js e `/api` à API. Postgres, fotos e filmes ficam nos volumes `pgdata` e `uploads`. Sem arquivo `.env`, o Compose usa os padrões de desenvolvimento (HTTP, cookie sem a flag Secure).
+O site fica em [http://localhost](http://localhost). O Nginx recebe a porta 80 e entrega `/` ao Next.js e `/api` à API. Postgres, fotos e vídeos ficam nos volumes `pgdata` e `uploads`. Sem arquivo `.env`, o Compose usa os padrões de desenvolvimento (HTTP, cookie sem a flag Secure).
 
 Para parar: `docker compose down`. Os volumes permanecem. `docker compose down -v` apaga o banco e as fotos.
 
-## VPS
+## Produção
 
-O mesmo Compose sobe na VPS. Instale o Docker Engine e o plugin Compose, copie o projeto e ajuste o ambiente:
+`https://personae.men` roda numa VPS com o mesmo Compose mais `docker-compose.prod.yml`: o Nginx atende HTTPS com o certificado de origem do Cloudflare (SSL Full strict) e só aceita conexões vindas do Cloudflare.
 
-```bash
-cp .env.example .env
-# edite PUBLIC_URL, COOKIE_SECURE, CORS_ORIGINS, JWT_SECRET, ADMIN_PASSWORD e POSTGRES_PASSWORD
-docker compose up --build -d
-```
+- **Provisionar uma VPS nova:** `DEPLOY_PUBKEY="<chave pública do deploy>" bash deploy/bootstrap.sh` e crie `/opt/personae/.env` a partir do bloco de VPS do `.env.example` (`SEED_ENABLED=false`, `COOKIE_SECURE=true`, `JWT_SECRET` longo).
+- **Entregar mudanças:** abra um PR para `main`. A CI (`.github/workflows/ci.yml`) roda testes, builds e um smoke test da stack inteira em Docker. O merge na `main` dispara `.github/workflows/deploy.yml`, que publica na VPS, faz rollback sozinho se a versão nova não ficar saudável e testa `https://personae.men` no fim. No Cursor, a skill `deploy-personae` faz esse fluxo do commit ao merge.
+- **Saúde:** `GET /api/health` responde `{"status":"UP","database":"UP"}` e 503 quando o banco cai. O painel `https://status.personae.men` (Worker em `monitor/`) checa a cada minuto e manda e-mail quando o site cai e quando volta.
 
-No `.env` de produção:
-
-- `PUBLIC_URL=https://personae.men`
-- `COOKIE_SECURE=true`
-- `CORS_ORIGINS=https://personae.men,https://www.personae.men`
-- `JWT_SECRET` longo e só seu
-- `ADMIN_PASSWORD` e `POSTGRES_PASSWORD` novos
-
-Aponte o DNS de `personae.men` para a VPS. No Cloudflare o proxy está ligado e o SSL da borda está em Flexible, porque a origem responde em HTTP na porta 80. Saúde da API: `GET /api/health` e `GET /actuator/health`. Um monitor externo pode olhar `https://personae.men/api/health`.
-
-O pipeline em `.github/workflows/ci.yml` roda os testes do frontend e do backend.
+Detalhes da infraestrutura: `.cursor/skills/deploy-personae/reference.md`.
 
 ## Testes
 

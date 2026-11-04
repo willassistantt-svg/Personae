@@ -1,0 +1,10 @@
+# Production overlay. On the VPS, .env sets COMPOSE_FILE=docker-compose.yml:docker-compose.prod.yml
+# and HTTP_PORT=127.0.0.1:80, so only HTTPS (443) is public and it only answers Cloudflare.
+services:
+  nginx:
+    ports:
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.prod.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/cloudflare.conf:/etc/nginx/cloudflare.conf:ro
+      - /etc/personae/tls:/etc/personae/tls:ro
