@@ -1,6 +1,13 @@
-# Production overlay. On the VPS, .env sets COMPOSE_FILE=docker-compose.yml:docker-compose.prod.yml
-# and HTTP_PORT=127.0.0.1:80, so only HTTPS (443) is public and it only answers Cloudflare.
+# Production overlay. On the VPS, .env sets COMPOSE_FILE=docker-compose.yml:docker-compose.prod.yml,
+# HTTP_PORT=127.0.0.1:80 and IMAGE_TAG (the deployed commit), so only HTTPS (443) is public and it
+# only answers Cloudflare. Images are built by GitHub Actions and pulled from GHCR.
 services:
+  api:
+    image: ghcr.io/willassistantt-svg/personae-api:${IMAGE_TAG:-latest}
+
+  frontend:
+    image: ghcr.io/willassistantt-svg/personae-frontend:${IMAGE_TAG:-latest}
+
   nginx:
     ports:
       - "443:443"
