@@ -8,14 +8,11 @@ import com.thepersonae.service.AuthService;
 import com.thepersonae.service.ProfileService;
 import com.thepersonae.web.dto.Presenter;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -39,9 +36,9 @@ public class ProfileController {
             @RequestParam(required = false) String tier,
             @RequestParam(defaultValue = "pt") String locale
     ) {
-        UserAccount user = auth.requireUser(principal);
+        auth.requireUser(principal);
         var found = profiles.catalog(q, enumOrNull(availability, Availability.class), enumOrNull(tier, Tier.class));
-        return presenter.cards(found, locale, profiles.favoriteIds(user));
+        return presenter.cards(found, locale);
     }
 
     @GetMapping("/api/profiles/{id}")
@@ -50,25 +47,9 @@ public class ProfileController {
             @PathVariable UUID id,
             @RequestParam(defaultValue = "pt") String locale
     ) {
-        UserAccount user = auth.requireUser(principal);
+        auth.requireUser(principal);
         CompanionProfile profile = profiles.visible(id);
-        boolean favorite = profiles.favoriteIds(user).contains(id);
-        return presenter.detail(profile, profiles.mediaFor(id), favorite, profiles.house(), locale);
-    }
-
-    @PostMapping("/api/profiles/{id}/favorite")
-    public Map<String, Boolean> favorite(@AuthenticationPrincipal UserAccount principal, @PathVariable UUID id) {
-        boolean saved = profiles.toggleFavorite(auth.requireUser(principal), id);
-        return Map.of("favorite", saved);
-    }
-
-    @DeleteMapping("/api/profiles/{id}/favorite")
-    public Map<String, Boolean> unfavorite(@AuthenticationPrincipal UserAccount principal, @PathVariable UUID id) {
-        UserAccount user = auth.requireUser(principal);
-        if (profiles.favoriteIds(user).contains(id)) {
-            profiles.toggleFavorite(user, id);
-        }
-        return Map.of("favorite", false);
+        return presenter.detail(profile, profiles.mediaFor(id), profiles.house(), locale);
     }
 
     private <T extends Enum<T>> T enumOrNull(String raw, Class<T> type) {

@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { useRef, useState } from "react";
-import { ArrowDown, ArrowLeft, Play, Star } from "@phosphor-icons/react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { ArrowDown, ArrowLeft, Play } from "@phosphor-icons/react";
+import { useQuery } from "@tanstack/react-query";
 import { Footer, LoadingBlock, Wordmark } from "@/components/ui";
 import { LanguageButton } from "@/components/ui";
 import { useGuard } from "@/hooks/useGuard";
@@ -16,19 +16,14 @@ export function DetailContainer() {
   const { t, locale } = useI18n();
   const router = useRouter();
   const id = typeof router.query.id === "string" ? router.query.id : "";
-  const client = useQueryClient();
   const scroller = useRef<HTMLDivElement>(null);
   const [contact, setContact] = useState(false);
-  const [film, setFilm] = useState<Detail["videos"][number] | null>(null);
+  const [video, setVideo] = useState<Detail["videos"][number] | null>(null);
   const [photo, setPhoto] = useState<string | null>(null);
   const detail = useQuery({
     queryKey: ["profile", id, locale],
     enabled: Boolean(session.user && id),
     queryFn: () => api<Detail>(`/api/profiles/${id}?locale=${locale}`),
-  });
-  const favorite = useMutation({
-    mutationFn: () => api(`/api/profiles/${id}/favorite`, { method: "POST" }),
-    onSuccess: () => client.invalidateQueries({ queryKey: ["profile", id] }),
   });
 
   if (!session.user || detail.isLoading || !router.isReady) {
@@ -73,9 +68,6 @@ export function DetailContainer() {
           </div>
           <div className="flex shrink-0 items-center gap-2 md:gap-5">
             <LanguageButton />
-            <button type="button" onClick={() => favorite.mutate()} className="flex h-11 w-11 items-center justify-center rounded-full border border-hairline hover:border-champagne">
-              <Star weight={persona.favorite ? "fill" : "regular"} className={persona.favorite ? "text-champagne" : ""} />
-            </button>
             <button type="button" onClick={() => setContact(true)} className="gold-gradient hidden min-h-11 rounded-xl px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-ink sm:inline-flex md:px-8 md:text-xs">
               {t("detail.contact")}
             </button>
@@ -150,14 +142,14 @@ export function DetailContainer() {
         <section className="bg-ink px-5 py-16 md:px-12 lg:px-24">
           <div className="mb-12 text-center">
             <h3 className="mb-4 font-serif text-4xl italic sm:text-5xl">
-              {t("detail.films")} <span className="font-bold not-italic text-champagne">{t("detail.filmsEm")}</span>
+              {t("detail.videos")} <span className="font-bold not-italic text-champagne">{t("detail.videosEm")}</span>
             </h3>
-            <p className="text-xs font-bold uppercase tracking-[0.3em] text-zincMuted">{t("detail.filmsNote")}</p>
+            <p className="text-xs font-bold uppercase tracking-[0.3em] text-zincMuted">{t("detail.videosNote")}</p>
           </div>
-          {persona.videos.length === 0 ? <p className="text-center text-sm text-zincMuted">{t("detail.noFilm")}</p> : null}
+          {persona.videos.length === 0 ? <p className="text-center text-sm text-zincMuted">{t("detail.noVideo")}</p> : null}
           <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
             {persona.videos.map((item) => (
-              <button type="button" key={item.id} onClick={() => setFilm(item)} className="group relative aspect-[3/4] overflow-hidden rounded-3xl border border-hairline sm:aspect-[9/16]">
+              <button type="button" key={item.id} onClick={() => setVideo(item)} className="group relative aspect-[3/4] overflow-hidden rounded-3xl border border-hairline sm:aspect-[9/16]">
                 <img src={hero} alt="" className="h-full w-full object-cover transition-transform duration-1000 group-hover:scale-110" />
                 <span className="absolute inset-0 flex items-center justify-center bg-black/40">
                   <span className="flex h-20 w-20 items-center justify-center rounded-full border border-white/30 backdrop-blur-md">
@@ -199,12 +191,12 @@ export function DetailContainer() {
           </div>
         </div>
       ) : null}
-      {film ? (
+      {video ? (
         <div className="fixed inset-0 z-[80] flex flex-col bg-ink/95 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-[max(1rem,env(safe-area-inset-top))]">
-          <button type="button" className="mb-4 self-end px-2 py-3 text-xs uppercase tracking-widest text-champagne" onClick={() => setFilm(null)}>
+          <button type="button" className="mb-4 self-end px-2 py-3 text-xs uppercase tracking-widest text-champagne" onClick={() => setVideo(null)}>
             {t("detail.close")}
           </button>
-          <video src={film.url} controls autoPlay playsInline className="mx-auto max-h-[75dvh] w-full rounded-3xl" />
+          <video src={video.url} controls autoPlay playsInline className="mx-auto max-h-[75dvh] w-full rounded-3xl" />
         </div>
       ) : null}
       {photo ? (

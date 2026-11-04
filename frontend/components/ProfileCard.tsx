@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { Star } from "@phosphor-icons/react";
 import { useI18n } from "@/lib/i18n";
 import { ageLabel } from "@/lib/format";
 import type { Card } from "@/lib/types";
@@ -7,11 +6,9 @@ import type { Card } from "@/lib/types";
 export function ProfileCard({
   card,
   view,
-  onFavorite,
 }: {
   card: Card;
   view: "large" | "grid" | "list";
-  onFavorite?: (id: string) => void;
 }) {
   const { t, locale } = useI18n();
   const photos = card.photos.length ? card.photos : [];
@@ -49,16 +46,6 @@ export function ProfileCard({
             {card.city}
           </span>
         </div>
-        {onFavorite ? (
-          <button
-            type="button"
-            onClick={() => onFavorite(card.id)}
-            className="absolute right-4 top-4 flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-black/40 text-zincMuted backdrop-blur-md transition-colors hover:text-champagne sm:right-5 sm:h-12 sm:w-12 md:right-8 md:top-8"
-            aria-label={t("catalog.saved")}
-          >
-            <Star weight={card.favorite ? "fill" : "regular"} className={card.favorite ? "text-champagne" : ""} size={22} />
-          </button>
-        ) : null}
         <div className="pointer-events-none absolute bottom-28 right-5 hidden flex-col gap-2 sm:flex md:bottom-32 md:right-8">
           {side.map((src, index) =>
             src ? (

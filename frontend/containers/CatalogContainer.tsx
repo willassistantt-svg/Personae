@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Layout, List, SquaresFour } from "@phosphor-icons/react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { Footer } from "@/components/ui";
 import { MemberChrome } from "@/components/MemberChrome";
 import { ProfileCard } from "@/components/ProfileCard";
@@ -15,16 +15,11 @@ type View = "large" | "grid" | "list";
 export function CatalogContainer() {
   const session = useGuard(false);
   const { t, locale } = useI18n();
-  const client = useQueryClient();
   const [view, setView] = useState<View>("large");
   const catalog = useQuery({
     queryKey: ["profiles", locale],
     enabled: Boolean(session.user),
     queryFn: () => api<Card[]>(`/api/profiles?locale=${locale}`),
-  });
-  const favorite = useMutation({
-    mutationFn: (id: string) => api(`/api/profiles/${id}/favorite`, { method: "POST" }),
-    onSuccess: () => client.invalidateQueries({ queryKey: ["profiles"] }),
   });
 
   if (!session.user) {
@@ -70,7 +65,7 @@ export function CatalogContainer() {
         {catalog.data && catalog.data.length === 0 ? <p className="text-sm text-zincMuted">{t("catalog.empty")}</p> : null}
         <div className={view === "large" ? "grid grid-cols-1 gap-10 md:grid-cols-2" : view === "grid" ? "grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3" : "grid grid-cols-1 gap-4"}>
           {catalog.data?.map((card) => (
-            <ProfileCard key={card.id} card={card} view={view} onFavorite={(id) => favorite.mutate(id)} />
+            <ProfileCard key={card.id} card={card} view={view} />
           ))}
         </div>
       </main>

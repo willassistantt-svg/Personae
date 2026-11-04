@@ -13,7 +13,6 @@ import com.thepersonae.service.TokenService;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
-import java.util.Set;
 import java.util.UUID;
 
 @Component
@@ -69,7 +68,7 @@ public class Presenter {
         );
     }
 
-    public CardView card(CompanionProfile profile, List<ProfileMedia> media, boolean favorite, String locale) {
+    public CardView card(CompanionProfile profile, List<ProfileMedia> media, String locale) {
         List<MediaView> photos = photos(media).stream().limit(3).toList();
         String description = "en".equals(locale) ? profile.getDescriptionEn() : profile.getDescriptionPt();
         return new CardView(
@@ -84,12 +83,11 @@ public class Presenter {
                 profile.getTier().name(),
                 profile.getAvailability().name(),
                 profile.isVisible(),
-                favorite,
                 photos
         );
     }
 
-    public DetailView detail(CompanionProfile profile, List<ProfileMedia> media, boolean favorite, SiteSettings house, String locale) {
+    public DetailView detail(CompanionProfile profile, List<ProfileMedia> media, SiteSettings house, String locale) {
         String description = "en".equals(locale) ? profile.getDescriptionEn() : profile.getDescriptionPt();
         return new DetailView(
                 profile.getId(),
@@ -113,7 +111,6 @@ public class Presenter {
                 profile.getAvailability().name(),
                 profile.getTier().name(),
                 profile.isVisible(),
-                favorite,
                 photos(media),
                 videos(media)
         );
@@ -179,12 +176,12 @@ public class Presenter {
         return clean.length() <= 180 ? clean : clean.substring(0, 177) + "...";
     }
 
-    public List<CardView> cards(List<CompanionProfile> profiles, String locale, Set<UUID> favoriteIds) {
+    public List<CardView> cards(List<CompanionProfile> profiles, String locale) {
         var grouped = this.profiles.mediaForAll(profiles.stream().map(CompanionProfile::getId).toList())
                 .stream()
                 .collect(java.util.stream.Collectors.groupingBy(item -> item.getProfile().getId()));
         return profiles.stream()
-                .map(profile -> card(profile, grouped.getOrDefault(profile.getId(), List.of()), favoriteIds.contains(profile.getId()), locale))
+                .map(profile -> card(profile, grouped.getOrDefault(profile.getId(), List.of()), locale))
                 .toList();
     }
 
@@ -206,7 +203,6 @@ public class Presenter {
             String tier,
             String availability,
             boolean visible,
-            boolean favorite,
             List<MediaView> photos
     ) {
     }
@@ -233,7 +229,6 @@ public class Presenter {
             String availability,
             String tier,
             boolean visible,
-            boolean favorite,
             List<MediaView> photos,
             List<MediaView> videos
     ) {
