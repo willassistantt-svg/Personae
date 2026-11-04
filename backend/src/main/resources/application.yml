@@ -45,7 +45,7 @@ personae:
     dir: ${STORAGE_DIR:./data/uploads}
   resend:
     api-key: ${RESEND_API_KEY:}
-    from: ${RESEND_FROM:The Personae <noreply@thepersonae.com>}
+    from: ${RESEND_FROM:The Personae <noreply@personae.men>}
   admin:
     email: ${ADMIN_EMAIL:iris.p@example.org}
     password: ${ADMIN_PASSWORD:PersonaeAdmin#2026}

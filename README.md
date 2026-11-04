@@ -2,7 +2,7 @@
 
 Casa privada para membros aceitos. O catálogo reúne várias personas, com fotografias, um filme curto e contato. O acesso só abre depois da análise da direção.
 
-Domínio previsto: [thepersonae.com](https://thepersonae.com). A interface está em português e inglês.
+Domínio: [personae.men](https://personae.men). A interface está em português e inglês.
 
 ## O que a casa faz
 
@@ -75,13 +75,13 @@ docker compose up --build -d
 
 No `.env` de produção:
 
-- `PUBLIC_URL=https://thepersonae.com`
+- `PUBLIC_URL=https://personae.men`
 - `COOKIE_SECURE=true`
-- `CORS_ORIGINS=https://thepersonae.com,https://www.thepersonae.com`
+- `CORS_ORIGINS=https://personae.men,https://www.personae.men`
 - `JWT_SECRET` longo e só seu
 - `ADMIN_PASSWORD` e `POSTGRES_PASSWORD` novos
 
-Aponte o DNS de `thepersonae.com` para a VPS. No Cloudflare, use o proxy e SSL completo, com a origem em HTTP na porta 80, ou termine TLS na frente do Nginx. Saúde da API: `GET /api/health` e `GET /actuator/health`. Um monitor externo pode olhar `https://thepersonae.com/api/health`.
+Aponte o DNS de `personae.men` para a VPS. No Cloudflare o proxy está ligado e o SSL da borda está em Flexible, porque a origem responde em HTTP na porta 80. Saúde da API: `GET /api/health` e `GET /actuator/health`. Um monitor externo pode olhar `https://personae.men/api/health`.
 
 O pipeline em `.github/workflows/ci.yml` roda os testes do frontend e do backend.
 

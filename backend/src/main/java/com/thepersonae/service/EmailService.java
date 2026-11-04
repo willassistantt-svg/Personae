@@ -39,8 +39,8 @@ public class EmailService {
                 ? "The Personae — recebemos o seu pedido de acesso"
                 : "The Personae — we received your access request";
         String body = pt
-                ? "<p>Olá " + user.getFirstName() + ",</p><p>O seu pedido entrou na casa. Cada cadastro é analisado pessoalmente. Quando houver um aceite, enviamos um link para você criar a senha. Até lá, o acesso permanece fechado.</p><p>The Personae · thepersonae.com</p>"
-                : "<p>Hello " + user.getFirstName() + ",</p><p>Your request has entered the house. Every application is reviewed in person. When it is accepted, we send a link so you can create your password. Until then, access stays closed.</p><p>The Personae · thepersonae.com</p>";
+                ? "<p>Olá " + user.getFirstName() + ",</p><p>O seu pedido entrou na casa. Cada cadastro é analisado pessoalmente. Quando houver um aceite, enviamos um link para você criar a senha. Até lá, o acesso permanece fechado.</p><p>The Personae · personae.men</p>"
+                : "<p>Hello " + user.getFirstName() + ",</p><p>Your request has entered the house. Every application is reviewed in person. When it is accepted, we send a link so you can create your password. Until then, access stays closed.</p><p>The Personae · personae.men</p>";
         return dispatch(user.getEmail(), subject, body);
     }
 
@@ -59,7 +59,7 @@ public class EmailService {
                     ? "O seu cadastro foi aceito. Crie uma senha pelo link abaixo para entrar na casa."
                     : "Your application was accepted. Create a password with the link below to enter the house.";
         }
-        String body = "<p>" + user.getFirstName() + ",</p><p>" + intro + "</p><p><a href=\"" + link + "\">" + link + "</a></p><p>The Personae · thepersonae.com</p>";
+        String body = "<p>" + user.getFirstName() + ",</p><p>" + intro + "</p><p><a href=\"" + link + "\">" + link + "</a></p><p>The Personae · personae.men</p>";
         return dispatch(user.getEmail(), subject, body);
     }
 

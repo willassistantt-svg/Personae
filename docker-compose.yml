@@ -34,14 +34,14 @@ services:
       PUBLIC_URL: ${PUBLIC_URL:-http://localhost}
       JWT_SECRET: ${JWT_SECRET:-personae-dev-secret-change-me-please-32b}
       RESEND_API_KEY: ${RESEND_API_KEY:-}
-      RESEND_FROM: "${RESEND_FROM:-The Personae <noreply@thepersonae.com>}"
+      RESEND_FROM: "${RESEND_FROM:-The Personae <noreply@personae.men>}"
       ADMIN_EMAIL: ${ADMIN_EMAIL:-iris.p@example.org}
       ADMIN_PASSWORD: "${ADMIN_PASSWORD:-PersonaeAdmin#2026}"
       ADMIN_NAME: ${ADMIN_NAME:-Marina Costa}
       STORAGE_DIR: /data/uploads
       SEED_ENABLED: ${SEED_ENABLED:-true}
       COOKIE_SECURE: ${COOKIE_SECURE:-false}
-      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost,http://127.0.0.1,http://thepersonae.com,https://thepersonae.com,https://www.thepersonae.com}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost,http://127.0.0.1,http://personae.men,https://personae.men,https://www.personae.men}
     volumes:
       - uploads:/data/uploads
     depends_on:

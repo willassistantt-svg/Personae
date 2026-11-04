@@ -46,7 +46,7 @@ export function LoginContainer() {
       </div>
       <form className="space-y-6" onSubmit={onSubmit}>
         {error ? <Notice>{error}</Notice> : null}
-        <Field label={t("login.email")} name="email" type="email" required placeholder="membership@thepersonae.com" />
+        <Field label={t("login.email")} name="email" type="email" required placeholder="membership@personae.men" />
         <Field label={t("login.password")} name="password" type="password" required placeholder="••••••••••••" />
         <div className="flex flex-wrap items-center justify-between gap-3 py-1">
           <label className="flex items-center gap-2 text-[10px] uppercase tracking-wider text-zincMuted">
