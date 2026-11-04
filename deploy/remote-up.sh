@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# Runs on the VPS (as the deploy user). Publishes DEPLOY_SHA (default: origin/main) and rolls
-# back to the previous commit when the new build does not become healthy.
+# Runs on the VPS (as the deploy user). Publishes DEPLOY_SHA (default: origin/main) using the images
+# GitHub Actions pushed to GHCR, and rolls back to the previous release when the new one is unhealthy.
+# Optional: REGISTRY_USER / REGISTRY_TOKEN to log in to ghcr.io (the workflow passes them on stdin).
 set -euo pipefail
 
 cd "${VPS_PATH:-/opt/personae}"
@@ -17,6 +18,14 @@ env_value() {
   line="${line%\"}"
   line="${line#\"}"
   printf '%s' "$line"
+}
+
+set_env() {
+  if grep -qE "^${1}=" .env; then
+    sed -i "s|^${1}=.*|${1}=${2}|" .env
+  else
+    printf '%s=%s\n' "$1" "$2" >> .env
+  fi
 }
 
 jwt="$(env_value JWT_SECRET)"
@@ -46,23 +55,43 @@ wait_healthy() {
       && curl -fsS --max-time 5 -o /dev/null http://127.0.0.1/; then
       return 0
     fi
-    sleep 5
+    sleep 3
   done
   return 1
 }
 
+# Pulls the images for a tag; builds them here only when the registry does not have them.
+start_release() {
+  export IMAGE_TAG="$1"
+  if docker compose pull --quiet api frontend; then
+    docker compose up -d --no-build --remove-orphans
+  else
+    echo "Imagens $IMAGE_TAG indisponíveis no registro; compilando na VPS (mais lento)."
+    docker compose up -d --build --remove-orphans
+  fi
+}
+
+if [ -n "${REGISTRY_TOKEN:-}" ]; then
+  printf '%s' "$REGISTRY_TOKEN" | docker login ghcr.io -u "${REGISTRY_USER:-deploy}" --password-stdin >/dev/null
+  trap 'docker logout ghcr.io >/dev/null 2>&1 || true' EXIT
+fi
+
 previous="$(git rev-parse HEAD)"
+previous_tag="$(env_value IMAGE_TAG)"
 git fetch --quiet origin main
 target="${DEPLOY_SHA:-$(git rev-parse origin/main)}"
 echo "Publicando ${target:0:7} (antes: ${previous:0:7})"
 git checkout --quiet --detach "$target"
 
-if docker compose up --build -d --remove-orphans && wait_healthy; then
+started=$(date +%s)
+if start_release "$target" && wait_healthy; then
   git checkout --quiet -B main "$target"
-  docker image prune -f >/dev/null
+  set_env IMAGE_TAG "$target"
+  docker image prune -af --filter "until=168h" >/dev/null || true
+  docker builder prune -af --filter "until=168h" >/dev/null || true
   docker compose ps
   echo "Saúde: $(curl -fsS http://127.0.0.1/api/health)"
-  echo "Publicado ${target:0:7}."
+  echo "Publicado ${target:0:7} em $(( $(date +%s) - started ))s."
   exit 0
 fi
 
@@ -71,8 +100,7 @@ docker compose logs --tail 80 api frontend nginx || true
 if [ "$previous" != "$target" ]; then
   echo "Voltando para ${previous:0:7}..."
   git checkout --quiet -B main "$previous"
-  docker compose up --build -d --remove-orphans
-  if wait_healthy; then
+  if start_release "${previous_tag:-$previous}" && wait_healthy; then
     echo "Rollback concluído: ${previous:0:7} está no ar."
   else
     echo "O rollback também não ficou saudável. Verifique a VPS."

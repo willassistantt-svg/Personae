@@ -29,3 +29,7 @@ Trocar a chave de deploy: gerar novo par, colocar a pública em `/home/deploy/.s
 ## Primeiro acesso em produção
 
 `SEED_ENABLED=false` não cria dados de demonstração. O `HouseBootstrap` cria as configurações da casa e a conta do diretor a partir de `ADMIN_EMAIL` / `ADMIN_PASSWORD` do `.env` da VPS, só se ela ainda não existir.
+
+## Imagens
+
+As imagens s�o compiladas no GitHub Actions e publicadas no GHCR (`ghcr.io/willassistantt-svg/personae-api` e `personae-frontend`, tags `<sha>` e `latest`). O `.env` da VPS guarda `IMAGE_TAG` com o commit no ar; o `docker-compose.prod.yml` usa essa tag. O `remote-up.sh` faz login no GHCR com o token tempor�rio do workflow, roda `docker compose pull` e `up --no-build`. Se a imagem n�o existir no registro, ele compila na VPS (mais lento). Rollback manual: `IMAGE_TAG=<sha anterior>` no `.env` e `docker compose up -d` como `deploy`.

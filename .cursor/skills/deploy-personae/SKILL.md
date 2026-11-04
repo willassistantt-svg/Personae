@@ -10,7 +10,7 @@ Repositório: `willassistantt-svg/Personae` (GitHub). Produção: `https://perso
 ## Como o pipeline funciona
 
 - **CI** (`.github/workflows/ci.yml`) roda em todo PR para `main`: backend (`gradlew test bootJar`), frontend (`typecheck`, `test`, `build`) e **e2e** (sobe a stack inteira com Docker e roda `deploy/smoke.sh` com login do admin de demonstração).
-- **Deploy** (`.github/workflows/deploy.yml`) roda em todo push na `main`: repete a CI, entra por SSH na VPS como `deploy`, roda `deploy/remote-up.sh` com o commit exato (`DEPLOY_SHA`), espera a saúde e **faz rollback sozinho** se a versão nova não subir. Depois o job **Verificar produção** roda o smoke test contra `https://personae.men`.
+- **Deploy** (`.github/workflows/deploy.yml`) roda em todo push na `main`: repete a CI **em paralelo** com a compilação das imagens Docker (cache do GitHub Actions, publicadas em `ghcr.io/willassistantt-svg/personae-api` e `personae-frontend` com a tag do commit), entra por SSH na VPS como `deploy`, roda `deploy/remote-up.sh` com o commit exato (`DEPLOY_SHA`), que só baixa as imagens prontas (a VPS não compila nada), espera a saúde e **faz rollback sozinho** se a versão nova não subir. Depois o job **Verificar produção** roda o smoke test contra `https://personae.men`.
 - Monitor independente: `https://status.personae.men` (Worker em `monitor/`) checa a cada minuto e manda e-mail quando cai e quando volta.
 
 ## Fluxo de entrega
@@ -59,7 +59,7 @@ Se já existe PR para a branch, só faça push. Anote o número do PR.
 gh pr checks <numero> --watch --fail-fast
 ```
 
-Leva ~10–15 min (o job e2e builda as imagens Docker). Se falhar:
+Leva ~3–5 min (o job e2e sobe a stack com Docker). Se falhar:
 
 ```bash
 gh run list --branch <branch> --limit 3
@@ -81,7 +81,7 @@ gh run list --workflow deploy.yml --branch main --limit 1
 gh run watch <run-id> --exit-status
 ```
 
-O run passa por: CI → Publicar na VPS → Verificar produção (~15–20 min no total). Se falhar em "Publicar na VPS", o `remote-up.sh` já voltou a versão anterior; leia o log com `gh run view <run-id> --log-failed`, corrija e repita o fluxo com um novo PR.
+O run passa por: CI + Imagens (em paralelo) → Publicar na VPS → Verificar produção (~5–7 min no total; a troca de containers na VPS leva ~1 min). Se falhar em "Publicar na VPS", o `remote-up.sh` já voltou a versão anterior; leia o log com `gh run view <run-id> --log-failed`, corrija e repita o fluxo com um novo PR.
 
 **7. Verificar produção e voltar para a main**
 
