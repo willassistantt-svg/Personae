@@ -15,7 +15,7 @@ export function ForgotContainer() {
     const form = new FormData(event.currentTarget);
     setError(null);
     try {
-      await api("/api/auth/forgot-password", { body: { email: String(form.get("email") || "") } });
+      await api("/api/auth/forgot-password", { body: { email: String(form.get("email") || "") }, success: "feedback.emailSent" });
       setSent(true);
     } catch (caught) {
       setError(t(errorKey(caught instanceof ApiError ? caught.code : undefined)));

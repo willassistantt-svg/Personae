@@ -18,11 +18,11 @@ export function ProfilesAdminContainer() {
   });
   const visibility = useMutation({
     mutationFn: ({ id, visible }: { id: string; visible: boolean }) =>
-      api(`/api/admin/profiles/${id}/visibility?visible=${visible}`, { method: "PATCH" }),
+      api(`/api/admin/profiles/${id}/visibility?visible=${visible}`, { method: "PATCH", success: visible ? "feedback.shown" : "feedback.hidden" }),
     onSuccess: () => client.invalidateQueries({ queryKey: ["admin-profiles"] }),
   });
   const remove = useMutation({
-    mutationFn: (id: string) => api(`/api/admin/profiles/${id}`, { method: "DELETE" }),
+    mutationFn: (id: string) => api(`/api/admin/profiles/${id}`, { method: "DELETE", success: "feedback.profileRemoved" }),
     onSuccess: () => client.invalidateQueries({ queryKey: ["admin-profiles"] }),
   });
 

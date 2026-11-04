@@ -39,7 +39,7 @@ export function SetPasswordContainer() {
     setPending(true);
     setError(null);
     try {
-      const user = await api<SessionUser>("/api/auth/set-password", { body: { token, password } });
+      const user = await api<SessionUser>("/api/auth/set-password", { body: { token, password }, success: "feedback.passwordSet" });
       client.setQueryData(["me"], user);
       router.push(user.role === "ADMIN" ? "/admin" : "/catalog");
     } catch (caught) {

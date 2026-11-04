@@ -8,6 +8,7 @@ import { useGuard } from "@/hooks/useGuard";
 import { ApiError, api } from "@/lib/api";
 import { errorKey, useI18n } from "@/lib/i18n";
 import type { Detail, Media } from "@/lib/types";
+import { type PendingPhoto, arrangeTiles, move, photoFields, tileKey } from "@/lib/photoTiles";
 import { personaIssue } from "@/lib/validation";
 
 const ethnicities = ["EUROPEAN", "MEDITERRANEAN", "LATIN_AMERICAN", "AFRICAN", "ASIAN", "MIDDLE_EASTERN", "MIXED", "OTHER"];
@@ -21,16 +22,6 @@ const issueKey = {
   weight: "errors.measure",
   fee: "errors.validation",
 } as const;
-
-type PendingPhoto = { key: string; file: File; url: string };
-
-function move<T>(items: T[], from: number, to: number): T[] {
-  if (from === to || to < 0 || to >= items.length) return items;
-  const next = [...items];
-  const [item] = next.splice(from, 1);
-  next.splice(to, 0, item);
-  return next;
-}
 
 export function ProfileFormContainer() {
   const session = useGuard(true);
@@ -46,7 +37,7 @@ export function ProfileFormContainer() {
     queryFn: () => api<Detail>(`/api/admin/profiles/${id}?locale=pt`),
   });
   const [error, setError] = useState<string | null>(null);
-  const [photoOrder, setPhotoOrder] = useState<Media[] | null>(null);
+  const [layout, setLayout] = useState<string[] | null>(null);
   const [pending, setPending] = useState<PendingPhoto[]>([]);
   const [busy, setBusy] = useState(false);
   const pendingRef = useRef(pending);
@@ -55,7 +46,7 @@ export function ProfileFormContainer() {
   useEffect(() => () => pendingRef.current.forEach((item) => URL.revokeObjectURL(item.url)), []);
 
   const persona = existing.data;
-  const savedPhotos = photoOrder ?? persona?.photos ?? [];
+  const tiles = arrangeTiles(persona?.photos ?? [], pending, layout);
 
   function fail(caught: unknown) {
     setError(t(errorKey(caught instanceof ApiError ? caught.code : undefined)));
@@ -63,20 +54,21 @@ export function ProfileFormContainer() {
 
   function refresh(detail: Detail) {
     queryClient.setQueryData(queryKey, detail);
-    setPhotoOrder(null);
   }
 
-  async function reorderSaved(from: number, to: number) {
-    const next = move(savedPhotos, from, to);
-    if (next === savedPhotos || busy) return;
-    const previous = savedPhotos;
-    setPhotoOrder(next);
+  async function reorder(from: number, to: number) {
+    const next = move(tiles, from, to);
+    if (next === tiles || busy) return;
+    const previous = layout;
+    setLayout(next.map(tileKey));
+    if (!editing || next.some((tile) => tile.pending)) return;
     setBusy(true);
     setError(null);
     try {
-      refresh(await api<Detail>(`/api/admin/profiles/${id}/photos/order`, { method: "PUT", body: { ids: next.map((item) => item.id) } }));
+      refresh(await api<Detail>(`/api/admin/profiles/${id}/photos/order`, { method: "PUT", body: { ids: next.map(tileKey) }, success: "feedback.orderSaved" }));
+      setLayout(null);
     } catch (caught) {
-      setPhotoOrder(previous);
+      setLayout(previous);
       fail(caught);
     } finally {
       setBusy(false);
@@ -85,7 +77,7 @@ export function ProfileFormContainer() {
 
   async function removeSaved(item: Media) {
     if (busy) return;
-    if (item.kind === "PHOTO" && savedPhotos.length + pending.length <= 1) {
+    if (item.kind === "PHOTO" && (persona?.photos.length ?? 0) <= 1) {
       setError(t("errors.photo"));
       return;
     }
@@ -93,7 +85,7 @@ export function ProfileFormContainer() {
     setBusy(true);
     setError(null);
     try {
-      refresh(await api<Detail>(`/api/admin/profiles/${id}/media/${item.id}`, { method: "DELETE" }));
+      refresh(await api<Detail>(`/api/admin/profiles/${id}/media/${item.id}`, { method: "DELETE", success: item.kind === "PHOTO" ? "feedback.photoRemoved" : "feedback.videoRemoved" }));
     } catch (caught) {
       fail(caught);
     } finally {
@@ -127,16 +119,19 @@ export function ProfileFormContainer() {
       heightCm: String(form.get("heightCm") || ""),
       weightKg: String(form.get("weightKg") || ""),
       fee: String(form.get("fee") || ""),
-      photoCount: pending.length + (editing ? savedPhotos.length : 0),
+      photoCount: tiles.length,
     });
     if (issue) {
       setError(t(issueKey[issue]));
       return;
     }
+    const element = event.currentTarget;
     const fee = String(form.get("fee") || "").trim();
     form.delete("fee");
     if (fee) form.set("priceCents", String(Math.round(Number(fee) * 100)));
-    pending.forEach((item) => form.append("photos", item.file));
+    const fields = photoFields(tiles);
+    fields.photos.forEach((file) => form.append("photos", file));
+    fields.order.forEach((token) => form.append("photoOrder", token));
     const video = form.get("video");
     if (!(video instanceof File) || video.size === 0) form.delete("video");
     for (const field of ["heightCm", "weightKg", "currency", "ethnicity"] as const) {
@@ -154,8 +149,18 @@ export function ProfileFormContainer() {
       const saved = await api<Detail>(editing ? `/api/admin/profiles/${id}` : "/api/admin/profiles", {
         method: editing ? "PUT" : "POST",
         form,
+        success: editing ? "feedback.profileSaved" : "feedback.profileCreated",
       });
-      router.push(`/admin/profiles/${saved.id}`);
+      if (editing) {
+        refresh(saved);
+        pending.forEach((item) => URL.revokeObjectURL(item.url));
+        setPending([]);
+        setLayout(null);
+        const videoInput = element.elements.namedItem("video");
+        if (videoInput instanceof HTMLInputElement) videoInput.value = "";
+      } else {
+        router.replace(`/admin/profiles/${saved.id}`);
+      }
     } catch (caught) {
       fail(caught);
     } finally {
@@ -175,32 +180,19 @@ export function ProfileFormContainer() {
         {error ? <Notice>{error}</Notice> : null}
         <div>
           <span className="mb-2 block text-[10px] font-bold uppercase tracking-widest text-zincMuted">{required(t("profiles.photos"))}</span>
-          {savedPhotos.length > 0 || pending.length > 0 ? (
+          {tiles.length > 0 ? (
             <div className="mb-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
-              {savedPhotos.map((item, index) => (
+              {tiles.map((tile, index) => (
                 <PhotoTile
-                  key={item.id}
-                  url={item.url}
+                  key={tileKey(tile)}
+                  url={tile.pending ? tile.pending.url : tile.media.url}
                   index={index}
-                  total={savedPhotos.length}
-                  badge={index === 0 ? t("profiles.cover") : null}
+                  total={tiles.length}
+                  badge={index === 0 ? t("profiles.cover") : tile.pending ? t("profiles.newPhoto") : null}
                   disabled={busy}
-                  onMove={reorderSaved}
-                  onRemove={() => removeSaved(item)}
-                  t={t}
-                />
-              ))}
-              {pending.map((item, index) => (
-                <PhotoTile
-                  key={item.key}
-                  url={item.url}
-                  index={index}
-                  total={pending.length}
-                  badge={savedPhotos.length === 0 && index === 0 ? t("profiles.cover") : t("profiles.newPhoto")}
-                  disabled={busy}
-                  pending
-                  onMove={(from, to) => setPending((current) => move(current, from, to))}
-                  onRemove={() => removePending(item)}
+                  pending={Boolean(tile.pending)}
+                  onMove={reorder}
+                  onRemove={() => (tile.pending ? removePending(tile.pending) : removeSaved(tile.media))}
                   t={t}
                 />
               ))}
@@ -293,19 +285,20 @@ function PhotoTile({
   onRemove: () => void;
   t: (key: string) => string;
 }) {
-  const group = pending ? "pending" : "saved";
-
   function onDrop(event: DragEvent<HTMLDivElement>) {
     event.preventDefault();
     const [source, raw] = event.dataTransfer.getData("text/plain").split(":");
     const from = Number(raw);
-    if (source === group && !Number.isNaN(from) && from !== index) onMove(from, index);
+    if (source === "photo" && raw !== "" && !Number.isNaN(from) && from !== index) onMove(from, index);
   }
 
   return (
     <div
       draggable={!disabled}
-      onDragStart={(event) => event.dataTransfer.setData("text/plain", `${group}:${index}`)}
+      onDragStart={(event) => {
+        event.dataTransfer.effectAllowed = "move";
+        event.dataTransfer.setData("text/plain", `photo:${index}`);
+      }}
       onDragOver={(event) => event.preventDefault()}
       onDrop={onDrop}
       className={`group overflow-hidden rounded-2xl border ${pending ? "border-dashed border-champagne/60" : "border-hairline"} ${disabled ? "" : "cursor-grab"}`}

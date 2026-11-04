@@ -38,7 +38,7 @@ export function MemberDetailContainer() {
     }
   }
 
-  const approve = useMutation({ mutationFn: () => api<Issued>(`/api/admin/members/${id}/approve?sendEmail=${sendEmail}`, { method: "POST" }), onSuccess: (result) => setLink(result.link) });
+  const approve = useMutation({ mutationFn: () => api<Issued>(`/api/admin/members/${id}/approve?sendEmail=${sendEmail}`, { method: "POST", success: "feedback.memberApproved" }), onSuccess: (result) => setLink(result.link) });
 
   if (!session.user || session.user.role !== "ADMIN" || member.isLoading) {
     return <LoadingBlock label={t("common.loading")} />;
@@ -97,16 +97,16 @@ export function MemberDetailContainer() {
             <GoldButton type="button" disabled={approve.isPending} onClick={() => run(() => approve.mutateAsync())}>{t("members.approve")}</GoldButton>
           ) : null}
           {person.status === "PENDING_REVIEW" ? (
-            <QuietButton type="button" onClick={() => run(() => api<Member>(`/api/admin/members/${id}/reject`, { method: "POST" }))}>{t("members.reject")}</QuietButton>
+            <QuietButton type="button" onClick={() => run(() => api<Member>(`/api/admin/members/${id}/reject`, { method: "POST", success: "feedback.memberRejected" }))}>{t("members.reject")}</QuietButton>
           ) : null}
           {person.status !== "DISABLED" && person.role !== "ADMIN" ? (
-            <QuietButton type="button" onClick={() => run(() => api<Member>(`/api/admin/members/${id}/disable`, { method: "POST" }))}>{t("members.disable")}</QuietButton>
+            <QuietButton type="button" onClick={() => run(() => api<Member>(`/api/admin/members/${id}/disable`, { method: "POST", success: "feedback.memberDisabled" }))}>{t("members.disable")}</QuietButton>
           ) : null}
           {person.status === "DISABLED" ? (
-            <QuietButton type="button" onClick={() => run(() => api<Member>(`/api/admin/members/${id}/enable`, { method: "POST" }))}>{t("members.enable")}</QuietButton>
+            <QuietButton type="button" onClick={() => run(() => api<Member>(`/api/admin/members/${id}/enable`, { method: "POST", success: "feedback.memberEnabled" }))}>{t("members.enable")}</QuietButton>
           ) : null}
           {person.status === "INVITED" || person.status === "ACTIVE" ? (
-            <QuietButton type="button" onClick={() => run(() => api<Issued>(`/api/admin/members/${id}/link?sendEmail=${sendEmail}`, { method: "POST" }))}>{t("members.resend")}</QuietButton>
+            <QuietButton type="button" onClick={() => run(() => api<Issued>(`/api/admin/members/${id}/link?sendEmail=${sendEmail}`, { method: "POST", success: "feedback.linkIssued" }))}>{t("members.resend")}</QuietButton>
           ) : null}
           {person.role !== "ADMIN" ? (
             <QuietButton
@@ -114,7 +114,7 @@ export function MemberDetailContainer() {
               onClick={() => {
                 if (window.confirm(t("members.confirm"))) {
                   run(async () => {
-                    await api(`/api/admin/members/${id}`, { method: "DELETE" });
+                    await api(`/api/admin/members/${id}`, { method: "DELETE", success: "feedback.memberRemoved" });
                     router.push("/admin/members");
                   });
                 }

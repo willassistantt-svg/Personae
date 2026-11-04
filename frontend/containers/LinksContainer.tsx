@@ -19,7 +19,7 @@ export function LinksContainer() {
     queryFn: () => api<HouseLink[]>("/api/admin/links"),
   });
   const resend = useMutation({
-    mutationFn: (userId: string) => api<Issued>(`/api/admin/members/${userId}/link?sendEmail=true`, { method: "POST" }),
+    mutationFn: (userId: string) => api<Issued>(`/api/admin/members/${userId}/link?sendEmail=true`, { method: "POST", success: "feedback.linkSent" }),
     onSuccess: () => client.invalidateQueries({ queryKey: ["links"] }),
   });
   if (!session.user || session.user.role !== "ADMIN") return <LoadingBlock label={t("common.loading")} />;

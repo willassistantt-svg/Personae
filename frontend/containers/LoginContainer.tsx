@@ -28,6 +28,7 @@ export function LoginContainer() {
           password: String(form.get("password") || ""),
           remember: form.get("remember") === "on",
         },
+        success: "feedback.signedIn",
       });
       client.setQueryData(["me"], user);
       router.push(user.role === "ADMIN" ? "/admin" : "/catalog");
