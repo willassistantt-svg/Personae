@@ -2,7 +2,7 @@ FROM eclipse-temurin:21-jdk AS build
 WORKDIR /src
 COPY . .
 ENV GRADLE_OPTS="-Dorg.gradle.daemon=false -Xmx1024m"
-RUN ./gradlew bootJar --no-daemon
+RUN sed -i 's/\r$//' ./gradlew && chmod +x ./gradlew && ./gradlew bootJar --no-daemon
 
 FROM eclipse-temurin:21-jre
 RUN apt-get update \
