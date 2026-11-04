@@ -1,0 +1,22 @@
+# Uptime monitor + status page for personae.men (Cloudflare Worker, free plan).
+# Deploy: npx wrangler deploy   |   secret: npx wrangler secret put RESEND_API_KEY
+name = "personae-status"
+main = "src/worker.js"
+compatibility_date = "2026-10-01"
+workers_dev = false
+
+routes = [{ pattern = "status.personae.men", custom_domain = true }]
+
+[triggers]
+crons = ["* * * * *"]
+
+[vars]
+TARGET = "https://personae.men"
+ALERT_TO = "lucaspvanderlinde@hotmail.com"
+ALERT_FROM = "Personae Monitor <monitor@personae.men>"
+FAILURES_BEFORE_ALERT = "2"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "personae-monitor"
+database_id = "b93a05d7-4a23-4855-94c5-843b7090709f"
