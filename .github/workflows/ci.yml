@@ -63,7 +63,9 @@ jobs:
       - name: Smoke test com login do admin
         run: bash deploy/smoke.sh http://localhost iris.p@example.org 'PersonaeAdmin#2026'
       - name: Fotos (ordem, foto nova no meio, remoção)
-        run: bash deploy/e2e-photos.sh http://localhost iris.p@example.org 'PersonaeAdmin#2026'
+        run: |
+          command -v magick >/dev/null || command -v convert >/dev/null || sudo apt-get install -y -qq imagemagick >/dev/null
+          bash deploy/e2e-photos.sh http://localhost iris.p@example.org 'PersonaeAdmin#2026'
       - name: Logs em caso de falha
         if: failure()
         run: docker compose logs --tail 200
