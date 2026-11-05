@@ -60,6 +60,19 @@ wait_healthy() {
   return 1
 }
 
+# The config files are bind-mounted one by one: git replaces them with new files, so a running nginx keeps
+# serving the old copy until the container is recreated.
+refresh_nginx() {
+  local wanted running
+  wanted="$(cat nginx/nginx.prod.conf nginx/cloudflare.conf | sha256sum)"
+  # </dev/null: this script arrives on stdin, and exec would swallow the rest of it.
+  running="$(docker compose exec -T nginx cat /etc/nginx/nginx.conf /etc/nginx/cloudflare.conf </dev/null 2>/dev/null | sha256sum || true)"
+  if [ "$wanted" != "$running" ]; then
+    echo "Configuração do Nginx mudou; recriando o container."
+    docker compose up -d --no-build --no-deps --force-recreate nginx
+  fi
+}
+
 # Pulls the images for a tag; builds them here only when the registry does not have them.
 start_release() {
   export IMAGE_TAG="$1"
@@ -69,6 +82,7 @@ start_release() {
     echo "Imagens $IMAGE_TAG indisponíveis no registro; compilando na VPS (mais lento)."
     docker compose up -d --build --remove-orphans
   fi
+  refresh_nginx
 }
 
 if [ -n "${REGISTRY_TOKEN:-}" ]; then
