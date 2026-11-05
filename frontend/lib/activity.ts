@@ -1,4 +1,4 @@
-export type Toast = { id: number; tone: "success" | "error"; key: string };
+export type Toast = { id: number; tone: "success" | "error" | "info"; key: string; text?: string; href?: string };
 export type ActivitySnapshot = { blocking: number; loading: number; toasts: Toast[] };
 
 const TOAST_MS = 3500;
@@ -34,10 +34,11 @@ export function begin(blocking: boolean): () => void {
   };
 }
 
-export function notify(tone: Toast["tone"], key: string) {
+export function notify(tone: Toast["tone"], key: string, extra: { text?: string; href?: string } = {}) {
   const id = nextId++;
-  update({ toasts: [...snapshot.toasts.filter((toast) => toast.key !== key), { id, tone, key }].slice(-3) });
-  setTimeout(() => dismiss(id), TOAST_MS);
+  const same = (toast: Toast) => toast.key === key && toast.text === extra.text;
+  update({ toasts: [...snapshot.toasts.filter((toast) => !same(toast)), { id, tone, key, ...extra }].slice(-3) });
+  setTimeout(() => dismiss(id), extra.href ? TOAST_MS * 2 : TOAST_MS);
 }
 
 export function dismiss(id: number) {
