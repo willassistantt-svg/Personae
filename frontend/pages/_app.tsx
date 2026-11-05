@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Inter, Playfair_Display } from "next/font/google";
 import { useState } from "react";
 import { ActivityLayer } from "@/components/ActivityLayer";
+import { ChatProvider } from "@/components/ChatProvider";
 import { LanguageProvider } from "@/lib/i18n";
 import "@/styles/globals.css";
 
@@ -18,10 +19,12 @@ export default function App({ Component, pageProps }: AppProps) {
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
       </Head>
       <LanguageProvider>
-        <div className={`${sans.variable} ${serif.variable} min-h-screen bg-ink font-sans text-zincBright antialiased`}>
-          <Component {...pageProps} />
-          <ActivityLayer />
-        </div>
+        <ChatProvider>
+          <div className={`${sans.variable} ${serif.variable} min-h-screen bg-ink font-sans text-zincBright antialiased`}>
+            <Component {...pageProps} />
+            <ActivityLayer />
+          </div>
+        </ChatProvider>
       </LanguageProvider>
     </QueryClientProvider>
   );

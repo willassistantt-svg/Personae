@@ -3,6 +3,7 @@ import { useRouter } from "next/router";
 import { useEffect, useRef, useState } from "react";
 import { SignOut, List, X } from "@phosphor-icons/react";
 import { useQueryClient } from "@tanstack/react-query";
+import { MemberChat } from "@/components/MemberChat";
 import { LanguageButton, Wordmark } from "@/components/ui";
 import { api } from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
@@ -146,6 +147,7 @@ export function MemberChrome({
         </div>
       ) : null}
       {children}
+      {user.role === "USER" ? <MemberChat /> : null}
     </div>
   );
 }

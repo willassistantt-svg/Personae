@@ -2,6 +2,7 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import {
   ChartLineUp,
+  ChatsCircle,
   Gear,
   IdentificationCard,
   LinkSimple,
@@ -9,7 +10,9 @@ import {
   SignOut,
   UsersThree,
 } from "@phosphor-icons/react";
+import { useEffect, useRef } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useChat } from "@/components/ChatProvider";
 import { LanguageButton, Wordmark } from "@/components/ui";
 import { api } from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
@@ -17,6 +20,7 @@ import type { SessionUser } from "@/lib/types";
 
 const links = [
   { href: "/admin", key: "admin.overview", icon: ChartLineUp },
+  { href: "/admin/chat", key: "admin.chat", icon: ChatsCircle },
   { href: "/admin/members", key: "admin.members", icon: UsersThree },
   { href: "/admin/profiles", key: "admin.profiles", icon: IdentificationCard },
   { href: "/admin/links", key: "admin.links", icon: LinkSimple },
@@ -24,8 +28,9 @@ const links = [
   { href: "/admin/settings", key: "admin.settings", icon: Gear },
 ];
 
-export function AdminShell({ user, title, children }: { user: SessionUser; title: string; children: React.ReactNode }) {
+export function AdminShell({ user, title, children, fill = false }: { user: SessionUser; title: string; children: React.ReactNode; fill?: boolean }) {
   const { t } = useI18n();
+  const chat = useChat();
   const router = useRouter();
   const client = useQueryClient();
   const health = useQuery({
@@ -33,6 +38,17 @@ export function AdminShell({ user, title, children }: { user: SessionUser; title
     queryFn: () => api<{ status: string }>("/api/health", { quiet: true }),
     retry: false,
   });
+  const strip = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const container = strip.current;
+    const active = container?.querySelector<HTMLElement>("[data-active]");
+    if (!container || !active) return;
+    const left = active.offsetLeft - container.offsetLeft;
+    if (left < container.scrollLeft || left + active.offsetWidth > container.scrollLeft + container.clientWidth) {
+      container.scrollLeft = left - 12;
+    }
+  }, [router.pathname]);
 
   async function signOut() {
     await api("/api/auth/logout", { method: "POST", success: "feedback.signedOut" });
@@ -54,7 +70,8 @@ export function AdminShell({ user, title, children }: { user: SessionUser; title
             }`}
           >
             <Icon className="text-lg" />
-            {t(item.key)}
+            <span className="flex-1">{t(item.key)}</span>
+            {item.href === "/admin/chat" && chat.unread > 0 ? <UnreadBadge count={chat.unread} /> : null}
           </Link>
         );
       })}
@@ -76,7 +93,7 @@ export function AdminShell({ user, title, children }: { user: SessionUser; title
           <p className="text-[10px] text-zincMuted">{t("admin.super")}</p>
         </div>
       </aside>
-      <div className="flex min-h-screen min-w-0 flex-1 flex-col">
+      <div className={`flex min-w-0 flex-1 flex-col ${fill ? "h-[100dvh] min-h-0" : "min-h-screen"}`}>
         <header className="sticky top-0 z-30 border-b border-hairline/60 bg-charcoal/90 pt-[env(safe-area-inset-top)] backdrop-blur-md">
           <div className="flex h-16 items-center justify-between gap-3 px-4 md:h-20 md:px-8">
           <div className="flex min-w-0 items-center gap-3">
@@ -95,7 +112,7 @@ export function AdminShell({ user, title, children }: { user: SessionUser; title
           </div>
           </div>
         </header>
-        <div className="flex gap-2 overflow-x-auto border-b border-hairline bg-charcoal px-3 py-2 md:hidden">
+        <div ref={strip} className="flex gap-2 overflow-x-auto border-b border-hairline bg-charcoal px-3 py-2 md:hidden">
           {links.map((item) => {
             const active = item.href === "/admin" ? router.pathname === "/admin" : router.pathname.startsWith(item.href);
             const Icon = item.icon;
@@ -103,18 +120,28 @@ export function AdminShell({ user, title, children }: { user: SessionUser; title
               <Link
                 key={item.href}
                 href={item.href}
+                data-active={active || undefined}
                 className={`flex shrink-0 items-center gap-2 rounded-full border px-3 py-2 text-[10px] font-bold uppercase tracking-widest ${
                   active ? "border-champagne text-champagne" : "border-hairline text-zincMuted"
                 }`}
               >
                 <Icon />
                 {t(item.key)}
+                {item.href === "/admin/chat" && chat.unread > 0 ? <UnreadBadge count={chat.unread} /> : null}
               </Link>
             );
           })}
         </div>
-        <div className="flex-1 overflow-y-auto bg-ink p-4 pb-[max(1rem,env(safe-area-inset-bottom))] md:p-8">{children}</div>
+        <div className={fill ? "flex min-h-0 flex-1 flex-col bg-ink md:p-6" : "flex-1 overflow-y-auto bg-ink p-4 pb-[max(1rem,env(safe-area-inset-bottom))] md:p-8"}>{children}</div>
       </div>
     </div>
+  );
+}
+
+function UnreadBadge({ count }: { count: number }) {
+  return (
+    <span data-testid="nav-chat-unread" className="flex h-5 min-w-5 items-center justify-center rounded-full bg-rose px-1.5 text-[10px] font-bold text-white">
+      {count > 99 ? "99+" : count}
+    </span>
   );
 }

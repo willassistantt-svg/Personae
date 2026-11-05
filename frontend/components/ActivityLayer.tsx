@@ -1,5 +1,6 @@
 import { useEffect, useState, useSyncExternalStore } from "react";
-import { CheckCircle, WarningCircle, X } from "@phosphor-icons/react";
+import Link from "next/link";
+import { ChatCircleDots, CheckCircle, WarningCircle, X } from "@phosphor-icons/react";
 import { dismiss, getSnapshot, subscribe } from "@/lib/activity";
 import { useI18n } from "@/lib/i18n";
 
@@ -39,17 +40,30 @@ export function ActivityLayer() {
           </div>
         </div>
       ) : null}
-      <div className="pointer-events-none fixed inset-x-0 bottom-0 z-[210] flex flex-col items-center gap-2 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:items-end sm:p-6">
+      <div className="pointer-events-none fixed inset-x-0 top-0 z-[210] flex flex-col items-center gap-2 p-3 pt-[max(0.75rem,env(safe-area-inset-top))] sm:items-end sm:p-6">
         {state.toasts.map((toast) => (
           <div
             key={toast.id}
             role={toast.tone === "error" ? "alert" : "status"}
+            data-testid="toast"
             className={`pointer-events-auto flex w-full max-w-sm items-center gap-3 rounded-2xl border bg-charcoal px-4 py-3 text-sm shadow-2xl ${
               toast.tone === "error" ? "border-rose/40 text-rose" : "border-champagne/40 text-zincBright"
             }`}
           >
-            {toast.tone === "error" ? <WarningCircle size={20} className="shrink-0" /> : <CheckCircle size={20} weight="fill" className="shrink-0 text-champagne" />}
-            <span className="flex-1">{t(toast.key)}</span>
+            {toast.tone === "error" ? (
+              <WarningCircle size={20} className="shrink-0" />
+            ) : toast.tone === "info" ? (
+              <ChatCircleDots size={20} weight="fill" className="shrink-0 text-champagne" />
+            ) : (
+              <CheckCircle size={20} weight="fill" className="shrink-0 text-champagne" />
+            )}
+            {toast.href ? (
+              <Link href={toast.href} onClick={() => dismiss(toast.id)} className="min-w-0 flex-1 break-words hover:text-champagne">
+                {toast.text ?? t(toast.key)}
+              </Link>
+            ) : (
+              <span className="min-w-0 flex-1 break-words">{toast.text ?? t(toast.key)}</span>
+            )}
             <button
               type="button"
               onClick={() => dismiss(toast.id)}

@@ -1,5 +1,7 @@
+import Link from "next/link";
 import { useRouter } from "next/router";
 import { useState } from "react";
+import { ChatsCircle } from "@phosphor-icons/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AdminShell } from "@/components/AdminShell";
 import { GoldButton, LoadingBlock, Notice, QuietButton, StatusPill } from "@/components/ui";
@@ -93,6 +95,14 @@ export function MemberDetailContainer() {
           {t("members.send")}
         </label>
         <div className="grid grid-cols-1 gap-3 sm:flex sm:flex-wrap">
+          {person.status === "ACTIVE" && person.role !== "ADMIN" ? (
+            <Link
+              href={`/admin/chat?member=${person.id}`}
+              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl border border-champagne/50 px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-champagne transition-colors hover:bg-champagne/10"
+            >
+              <ChatsCircle size={16} /> {t("chat.start")}
+            </Link>
+          ) : null}
           {person.status === "PENDING_REVIEW" || person.status === "REJECTED" ? (
             <GoldButton type="button" disabled={approve.isPending} onClick={() => run(() => approve.mutateAsync())}>{t("members.approve")}</GoldButton>
           ) : null}
