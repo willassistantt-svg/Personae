@@ -2,6 +2,9 @@ node_modules/
 .next/
 frontend/.next/
 frontend/tsconfig.tsbuildinfo
+frontend/e2e-report/
+frontend/e2e-results/
+frontend/e2e-screens/
 backend/build/
 backend/.gradle/
 backend/data/
