@@ -10,6 +10,8 @@ import com.thepersonae.repository.UserAccountRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.Duration;
@@ -27,6 +29,7 @@ public class MemberAdminService {
     private final EmailService email;
     private final TokenService tokenService;
     private final AuditService audit;
+    private final ChatHub chatHub;
 
     public MemberAdminService(
             UserAccountRepository users,
@@ -35,7 +38,8 @@ public class MemberAdminService {
             FileStorageService storage,
             EmailService email,
             TokenService tokenService,
-            AuditService audit
+            AuditService audit,
+            ChatHub chatHub
     ) {
         this.users = users;
         this.tokens = tokens;
@@ -44,6 +48,7 @@ public class MemberAdminService {
         this.email = email;
         this.tokenService = tokenService;
         this.audit = audit;
+        this.chatHub = chatHub;
     }
 
     @Transactional(readOnly = true)
@@ -112,6 +117,7 @@ public class MemberAdminService {
         }
         user.setStatus(AccountStatus.REJECTED);
         audit.record("REJECTION", user.getEmail(), "REJECTED");
+        disconnectAfterCommit(user);
         return user;
     }
 
@@ -121,6 +127,7 @@ public class MemberAdminService {
         guardSelf(user, actor);
         user.setStatus(AccountStatus.DISABLED);
         audit.record("MEMBER_DISABLED", user.getEmail(), "DISABLED");
+        disconnectAfterCommit(user);
         return user;
     }
 
@@ -149,6 +156,7 @@ public class MemberAdminService {
         String emailAddress = user.getEmail();
         users.delete(user);
         audit.record("MEMBER_REMOVED", emailAddress, "REMOVED");
+        disconnectAfterCommit(user);
     }
 
     @Transactional
@@ -192,6 +200,16 @@ public class MemberAdminService {
         tokens.save(token);
         audit.record(reset ? "PASSWORD_LINK" : "INVITE_SENT", user.getEmail(), status);
         return new IssuedLink(user, token, link);
+    }
+
+    private void disconnectAfterCommit(UserAccount user) {
+        java.util.UUID id = user.getId();
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                chatHub.disconnect(id);
+            }
+        });
     }
 
     private void guardSelf(UserAccount user, UserAccount actor) {

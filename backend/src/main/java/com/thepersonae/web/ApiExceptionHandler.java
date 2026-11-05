@@ -7,6 +7,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 import java.util.Map;
@@ -25,6 +28,11 @@ public class ApiExceptionHandler {
     ResponseEntity<Map<String, String>> upload(MaxUploadSizeExceededException ex) {
         return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE)
                 .body(Map.of("code", "FILE_TOO_LARGE", "message", "The file is larger than the house allows"));
+    }
+
+    @ExceptionHandler({HttpMessageNotReadableException.class, MethodArgumentTypeMismatchException.class, MissingServletRequestParameterException.class})
+    ResponseEntity<Map<String, String>> unreadable(Exception ex) {
+        return ResponseEntity.badRequest().body(Map.of("code", "VALIDATION", "message", "Check the form and try again"));
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
